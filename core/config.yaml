@@ -1,0 +1,182 @@
+# ============================================================
+# HELLHOUND SSRF v5.0 — Agent Configuration
+# ============================================================
+# scan_mode:
+#   detect           → read-only, safe for production targets (DEFAULT)
+#   detect_exploit   → unlocks Gopher RCE modules (requires operator ack)
+# ============================================================
+
+scan_mode: detect
+
+
+# ---- HTTP client -----------------------------------------------
+http:
+  timeout: 8.0           # seconds per request
+  proxy: null            # e.g. "http://127.0.0.1:8080" for Burp intercept
+  follow_redirects: true
+  max_redirects: 5
+  # Headers that are NEVER used as SSRF injection points even if discovered.
+  # The built-in blocklist covers Host, Content-Length, Transfer-Encoding, etc.
+  # Add custom headers here if your target uses proprietary routing headers
+  # you want to exclude.
+  header_injection_allowlist: []
+
+
+# ---- Rate limiting ---------------------------------------------
+rate_limit:
+  requests_per_second: 25.0
+  burst: 50
+
+
+# ---- Out-of-band (OOB) collaboration server --------------------
+# Set server_url to your Interactsh instance to enable FIRM-tier
+# blind SSRF confirmation. Leave null for anomaly-only (TENTATIVE) mode.
+oob:
+  server_url: null       # e.g. "https://oast.pro" or self-hosted Interactsh
+  poll_interval: 5.0     # seconds between /poll requests
+
+
+# ---- Authentication --------------------------------------------
+# Priority: bearer_token > api_key > cookies > spider-captured (auto)
+auth:
+  bearer_token: null     # raw JWT or opaque bearer token
+  api_key: null          # raw API key value
+  api_key_header: "X-Api-Key"
+  cookies: {}            # {"session": "abc123", "auth": "xyz"}
+
+
+# ---- OpenAPI / Swagger spec discovery -------------------------
+# When enabled, the agent tries to fetch a spec from the target
+# base URL at well-known paths (/openapi.json, /swagger.json, etc.)
+# and adds spec-derived candidates to the queue.
+openapi:
+  enabled: true
+  timeout: 10.0          # spec fetch timeout in seconds
+
+
+# ---- Phase 0: Pre-scoring -------------------------------------
+prescore:
+  skip_low_tier: false   # true = skip LOW-tier candidates entirely (faster, lower coverage)
+
+
+# ---- Phase 1: Baseline ----------------------------------------
+baseline:
+  samples: 5             # clean requests per candidate for baseline establishment
+  infra_noise_threshold: 3  # min candidates on same endpoint showing same anomaly → infra noise
+
+
+# ---- Phase 3: WAF fingerprinting ------------------------------
+waf:
+  enabled: true
+  min_confidence: 0.60   # minimum combined score to attribute a WAF vendor
+
+
+# ---- Phase 5: OOB / Blind SSRF --------------------------------
+# (config is under oob above)
+
+
+# ---- Phase 6: Evidence engine ---------------------------------
+evidence:
+  # Cloud metadata probes are always enabled.
+  # Set aggressive: true to also run Gopher/Dict protocol banner probes
+  # (Redis INFO, Memcached stats). Safe for pentest environments, not
+  # appropriate for passive/monitoring-only contexts.
+  aggressive: true       # enables protocol_banner and port_state_map evidence
+  spa_probe_count: 3     # random path probes to detect SPA catch-all before port mapping
+
+
+# ---- Phase 7: Second-order chaining ---------------------------
+chaining:
+  max_hops: 3            # maximum SSRF chain depth (0 = disable chaining)
+  dns_rebinding: true    # detect TOCTOU hostname → IP change
+
+
+# ---- Phase 8: Known exploits ----------------------------------
+known_exploits:
+  enabled: true
+  # Path to additional JSON registry file (loaded alongside built-ins).
+  # Leave null to use only the built-in registry.
+  extra_registry: null
+
+
+# ---- Output ---------------------------------------------------
+output:
+  dir: "reports"         # output directory for JSON and SARIF reports
+  save_evidence: true    # save raw evidence files to evidence/
+  sarif: true            # also write SARIF 2.1.0 report for CI/CD
+
+
+# ---- Native crawler (Phase 0 recon — only runs when --input is NOT given) --
+# CrossForge's own BFS crawler: same-origin discovery, form parsing (read-only
+# — forms are never submitted), static JS analysis for SPA API calls, and
+# robots.txt/sitemap.xml seeding. Output is fed through the SAME
+# spider_adapter triage/prescore pipeline a supplied spider file gets — see
+# core/crawler.py module docstring. Ignored entirely when --input is used.
+crawl:
+  max_pages_floor: 40        # starting page budget
+  max_pages_ceiling: 400     # absolute cap even if yield stays high
+  max_depth: 5                # BFS depth limit
+  concurrency: 8               # parallel in-flight page fetches
+  request_timeout: 8.0         # seconds per page fetch
+  max_crawl_seconds: 120.0     # wall-clock safety valve, independent of page budget
+  same_origin_only: true       # stay on the target host (see extra_scope_hosts to widen)
+  extra_scope_hosts: []        # e.g. ["api.target.com"] for a known API subdomain
+  js_static_analysis: true     # regex-extract fetch()/axios/XHR/jQuery call strings from JS
+  max_js_bytes: 3000000        # [Phase 1 rebuild bugfix] was 400000, far too small for
+                                # real SPA bundles — see core/crawler.py._analyze_js_url.
+                                # Files over this are truncated-and-still-analyzed, not dropped.
+  respect_robots_as_seed: true # add robots.txt Disallow entries to the frontier (not a fence)
+
+  # ---- Headless render escalation (core/crawler.py._run_headless_pass) ----
+  # Requires: pip install "crossforge[render]" && playwright install chromium
+  # Purely observational — watches network traffic + final DOM a real
+  # headless Chromium produces. Never fills forms or clicks buttons; see
+  # "WHAT THE HEADLESS PASS DELIBERATELY DOES NOT DO" in core/crawler.py.
+  # Escalates automatically only when the static pass underdelivers —
+  # doesn't spend browser time on ordinary server-rendered sites.
+  headless_enabled: true
+  headless_force: false                # true = always render, even if static crawl found plenty
+  headless_skip_if_endpoints_ge: 15     # skip headless if static pass already found >= this many
+  headless_max_seed_pages: 3            # base URL + up to N-1 more discovered pages
+  headless_timeout_ms: 20000
+  headless_block_resource_types: [image, font, media]   # skip loading these for speed
+
+  # ---- Phase 1 rebuild additions ----------------------------------
+  # Quality gate (core/recon_quality.py): filters soft-404/bot-block/
+  # duplicate-shell pages out of discovery before they ever reach Phase 0.
+  # No scope or third-party-service implications — on by default.
+  quality_gate_enabled: true
+
+  # security.txt (RFC 9116) as an extra seed source, same trust model as
+  # robots.txt/sitemap.xml above.
+  respect_security_txt_as_seed: true
+
+  # DNS intelligence (core/dns_intel.py): resolves hosts already in scope
+  # for operator visibility (also the prerequisite for a future real
+  # DNS-rebinding detector). Informational only, never expands scope.
+  # Full record-type enumeration (CNAME/MX/TXT/NS) needs the optional
+  # `dnspython` dependency (pip install "crossforge[dns]"); without it,
+  # this still resolves A/AAAA via the stdlib.
+  dns_intel_enabled: true
+
+  # Subdomain enumeration (core/subdomain_enum.py): OFF by default —
+  # queries the third-party crt.sh Certificate Transparency aggregator.
+  # Results are reported for operator review only; NEVER auto-added to
+  # crawl scope (use extra_scope_hosts above to explicitly include one).
+  subdomain_enum_enabled: false
+  subdomain_enum_limit: 50
+
+  # Wayback Machine historical-URL seeding (core/wayback_probe.py): OFF by
+  # default — third-party dependency, and historical URLs can be stale
+  # enough to waste probe budget. Same-origin filter applies identically
+  # to robots/sitemap seeds; never expands scope.
+  wayback_enabled: false
+  wayback_limit: 200
+
+
+# ---- GraphQL discovery [Phase 1 rebuild] -----------------------
+# Mirrors the openapi: block above — introspection-driven candidate
+# discovery for GraphQL-backed targets. See core/graphql_adapter.py.
+graphql:
+  enabled: true
+  timeout: 8.0           # introspection query timeout in seconds
