@@ -8,7 +8,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.10+-blue?style=flat-square&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/version-1.1.0-red?style=flat-square"/>
-  <img src="https://img.shields.io/badge/engine-Hellhound--Spider-orange?style=flat-square"/>
   <img src="https://img.shields.io/badge/evasion-WAF--Adaptive-critical?style=flat-square"/>
   <img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square"/>
   <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey?style=flat-square"/>
