@@ -1,0 +1,16 @@
+# CrossForge SSRF Agent v1.0.0 — Dependencies
+# Install: pip install -r requirements.txt
+# System install: pip install -e .  then use: crossforge --help
+
+httpx[http2]>=0.27.0
+PyYAML>=6.0.1
+rich>=13.7.1
+
+# Optional: pip install playwright && playwright install chromium
+# playwright>=1.44.0
+
+# Optional: pip install dnspython
+# Enables full DNS record enumeration (CNAME/MX/TXT/NS) in
+# core/dns_intel.py. Without it, DNS intel still resolves A/AAAA via the
+# stdlib — see that module's docstring.
+# dnspython>=2.6.0

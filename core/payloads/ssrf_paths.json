@@ -1,0 +1,756 @@
+[
+  {
+    "path": "/preview",
+    "method": "POST",
+    "params": [
+      "url",
+      "src",
+      "page"
+    ],
+    "category": "url_preview",
+    "note": "Generic preview endpoint"
+  },
+  {
+    "path": "/api/preview",
+    "method": "POST",
+    "params": [
+      "url",
+      "src"
+    ],
+    "category": "url_preview",
+    "note": "API preview route"
+  },
+  {
+    "path": "/preview/screenshot",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "url_preview",
+    "note": "Screenshot generator"
+  },
+  {
+    "path": "/api/preview/screenshot",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "url_preview",
+    "note": "Screenshot API"
+  },
+  {
+    "path": "/screenshot",
+    "method": "POST",
+    "params": [
+      "url",
+      "website"
+    ],
+    "category": "url_preview",
+    "note": "Direct screenshot endpoint"
+  },
+  {
+    "path": "/api/screenshot",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "url_preview",
+    "note": "Screenshot API route"
+  },
+  {
+    "path": "/opengraph",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "metadata_extractor",
+    "note": "OpenGraph fetcher"
+  },
+  {
+    "path": "/api/opengraph",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "metadata_extractor",
+    "note": "OG preview API"
+  },
+  {
+    "path": "/preview/opengraph",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "metadata_extractor",
+    "note": "OG preview under preview namespace"
+  },
+  {
+    "path": "/api/preview/opengraph",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "metadata_extractor",
+    "note": "OG preview API nested"
+  },
+  {
+    "path": "/thumbnail",
+    "method": "GET",
+    "params": [
+      "url",
+      "src",
+      "image"
+    ],
+    "category": "image_processing",
+    "note": "Thumbnail generator"
+  },
+  {
+    "path": "/api/thumbnail",
+    "method": "GET",
+    "params": [
+      "url",
+      "src"
+    ],
+    "category": "image_processing",
+    "note": "Thumbnail API"
+  },
+  {
+    "path": "/proxy",
+    "method": "GET",
+    "params": [
+      "url",
+      "target",
+      "dest"
+    ],
+    "category": "microservice_proxy",
+    "note": "Open proxy endpoint"
+  },
+  {
+    "path": "/api/proxy",
+    "method": "GET",
+    "params": [
+      "url",
+      "target"
+    ],
+    "category": "microservice_proxy",
+    "note": "API proxy route"
+  },
+  {
+    "path": "/fetch",
+    "method": "POST",
+    "params": [
+      "url",
+      "src",
+      "resource"
+    ],
+    "category": "url_fetch",
+    "note": "Generic URL fetch endpoint"
+  },
+  {
+    "path": "/api/fetch",
+    "method": "POST",
+    "params": [
+      "url",
+      "src"
+    ],
+    "category": "url_fetch",
+    "note": "Fetch API"
+  },
+  {
+    "path": "/load",
+    "method": "GET",
+    "params": [
+      "url",
+      "src"
+    ],
+    "category": "url_fetch",
+    "note": "Resource loader endpoint"
+  },
+  {
+    "path": "/api/load",
+    "method": "GET",
+    "params": [
+      "url"
+    ],
+    "category": "url_fetch",
+    "note": "Loader API"
+  },
+  {
+    "path": "/gateway",
+    "method": "POST",
+    "params": [
+      "url",
+      "endpoint",
+      "target"
+    ],
+    "category": "microservice_proxy",
+    "note": "API gateway / relay"
+  },
+  {
+    "path": "/forward",
+    "method": "POST",
+    "params": [
+      "url",
+      "target",
+      "to"
+    ],
+    "category": "microservice_proxy",
+    "note": "Request forwarder"
+  },
+  {
+    "path": "/redirect",
+    "method": "GET",
+    "params": [
+      "url",
+      "to",
+      "next",
+      "target"
+    ],
+    "category": "redirect_param",
+    "note": "Open redirect / relay"
+  },
+  {
+    "path": "/api/redirect",
+    "method": "GET",
+    "params": [
+      "url",
+      "to"
+    ],
+    "category": "redirect_param",
+    "note": "Redirect API"
+  },
+  {
+    "path": "/webhook",
+    "method": "POST",
+    "params": [
+      "url",
+      "endpoint",
+      "callback"
+    ],
+    "category": "callback_webhook",
+    "note": "Webhook registration"
+  },
+  {
+    "path": "/webhooks",
+    "method": "POST",
+    "params": [
+      "url",
+      "endpoint"
+    ],
+    "category": "callback_webhook",
+    "note": "Webhooks management"
+  },
+  {
+    "path": "/api/webhook",
+    "method": "POST",
+    "params": [
+      "url",
+      "target",
+      "callback"
+    ],
+    "category": "callback_webhook",
+    "note": "Webhook API"
+  },
+  {
+    "path": "/api/webhooks",
+    "method": "POST",
+    "params": [
+      "url",
+      "endpoint"
+    ],
+    "category": "callback_webhook",
+    "note": "Webhooks API"
+  },
+  {
+    "path": "/api/webhooks/verify",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "callback_webhook",
+    "note": "Webhook verification endpoint"
+  },
+  {
+    "path": "/webhooks/verify",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "callback_webhook",
+    "note": "Webhook verifier"
+  },
+  {
+    "path": "/callback",
+    "method": "POST",
+    "params": [
+      "url",
+      "callback",
+      "notify"
+    ],
+    "category": "callback_webhook",
+    "note": "Callback receiver"
+  },
+  {
+    "path": "/notify",
+    "method": "POST",
+    "params": [
+      "url",
+      "endpoint",
+      "webhook"
+    ],
+    "category": "callback_webhook",
+    "note": "Notification dispatcher"
+  },
+  {
+    "path": "/metadata",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "metadata_extractor",
+    "note": "URL metadata fetcher"
+  },
+  {
+    "path": "/api/metadata",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "metadata_extractor",
+    "note": "Metadata API"
+  },
+  {
+    "path": "/metadata/fetch",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "metadata_extractor",
+    "note": "Metadata fetch endpoint"
+  },
+  {
+    "path": "/api/metadata/fetch",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "metadata_extractor",
+    "note": "Metadata fetch API"
+  },
+  {
+    "path": "/link-preview",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "metadata_extractor",
+    "note": "Link preview generator"
+  },
+  {
+    "path": "/import",
+    "method": "POST",
+    "params": [
+      "url",
+      "source",
+      "file_url"
+    ],
+    "category": "file_import",
+    "note": "Remote file importer"
+  },
+  {
+    "path": "/api/import",
+    "method": "POST",
+    "params": [
+      "url",
+      "source"
+    ],
+    "category": "file_import",
+    "note": "Import API"
+  },
+  {
+    "path": "/export",
+    "method": "POST",
+    "params": [
+      "url",
+      "source"
+    ],
+    "category": "file_import",
+    "note": "Export from URL"
+  },
+  {
+    "path": "/export/pdf",
+    "method": "POST",
+    "params": [
+      "url",
+      "page_url"
+    ],
+    "category": "pdf_service",
+    "note": "PDF generator from URL"
+  },
+  {
+    "path": "/api/export/pdf",
+    "method": "POST",
+    "params": [
+      "url",
+      "page_url"
+    ],
+    "category": "pdf_service",
+    "note": "PDF export API"
+  },
+  {
+    "path": "/integrations/export-pdf",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "pdf_service",
+    "note": "Integration PDF export"
+  },
+  {
+    "path": "/api/integrations/export-pdf",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "pdf_service",
+    "note": "PDF export integration API"
+  },
+  {
+    "path": "/pdf",
+    "method": "POST",
+    "params": [
+      "url",
+      "page"
+    ],
+    "category": "pdf_service",
+    "note": "Direct PDF generation"
+  },
+  {
+    "path": "/render",
+    "method": "POST",
+    "params": [
+      "url",
+      "page"
+    ],
+    "category": "pdf_service",
+    "note": "Headless renderer"
+  },
+  {
+    "path": "/image",
+    "method": "GET",
+    "params": [
+      "url",
+      "src",
+      "source"
+    ],
+    "category": "image_processing",
+    "note": "Image proxy / resizer"
+  },
+  {
+    "path": "/api/image",
+    "method": "GET",
+    "params": [
+      "url",
+      "src"
+    ],
+    "category": "image_processing",
+    "note": "Image API"
+  },
+  {
+    "path": "/avatar",
+    "method": "POST",
+    "params": [
+      "url",
+      "src",
+      "image_url"
+    ],
+    "category": "image_processing",
+    "note": "Avatar importer"
+  },
+  {
+    "path": "/integrations/import-image",
+    "method": "POST",
+    "params": [
+      "image_url",
+      "url"
+    ],
+    "category": "image_processing",
+    "note": "Remote image import"
+  },
+  {
+    "path": "/api/integrations/import-image",
+    "method": "POST",
+    "params": [
+      "image_url",
+      "url"
+    ],
+    "category": "image_processing",
+    "note": "Image import API"
+  },
+  {
+    "path": "/upload/remote",
+    "method": "POST",
+    "params": [
+      "url",
+      "source"
+    ],
+    "category": "file_import",
+    "note": "Remote URL upload"
+  },
+  {
+    "path": "/rss",
+    "method": "GET",
+    "params": [
+      "url",
+      "feed",
+      "src"
+    ],
+    "category": "feed_rss",
+    "note": "RSS feed importer"
+  },
+  {
+    "path": "/feed",
+    "method": "GET",
+    "params": [
+      "url",
+      "src"
+    ],
+    "category": "feed_rss",
+    "note": "Feed endpoint"
+  },
+  {
+    "path": "/integrations/rss",
+    "method": "POST",
+    "params": [
+      "feed_url",
+      "url"
+    ],
+    "category": "feed_rss",
+    "note": "RSS integration endpoint"
+  },
+  {
+    "path": "/api/integrations/rss",
+    "method": "POST",
+    "params": [
+      "feed_url",
+      "url"
+    ],
+    "category": "feed_rss",
+    "note": "RSS integration API"
+  },
+  {
+    "path": "/health/external-check",
+    "method": "POST",
+    "params": [
+      "url",
+      "service_url"
+    ],
+    "category": "crawl_monitor",
+    "note": "External health check -- stored SSRF"
+  },
+  {
+    "path": "/api/health/external-check",
+    "method": "POST",
+    "params": [
+      "url",
+      "service_url"
+    ],
+    "category": "crawl_monitor",
+    "note": "External health check API"
+  },
+  {
+    "path": "/health/service-discovery",
+    "method": "POST",
+    "params": [
+      "subnet",
+      "endpoint"
+    ],
+    "category": "crawl_monitor",
+    "note": "Service discovery -- internal network scanner"
+  },
+  {
+    "path": "/api/health/service-discovery",
+    "method": "POST",
+    "params": [
+      "subnet",
+      "url"
+    ],
+    "category": "crawl_monitor",
+    "note": "Service discovery API"
+  },
+  {
+    "path": "/monitor",
+    "method": "POST",
+    "params": [
+      "url",
+      "endpoint"
+    ],
+    "category": "crawl_monitor",
+    "note": "Monitoring endpoint"
+  },
+  {
+    "path": "/ping",
+    "method": "POST",
+    "params": [
+      "url",
+      "host",
+      "target"
+    ],
+    "category": "crawl_monitor",
+    "note": "Ping/reachability tester"
+  },
+  {
+    "path": "/api/ping",
+    "method": "POST",
+    "params": [
+      "url",
+      "host"
+    ],
+    "category": "crawl_monitor",
+    "note": "Ping API"
+  },
+  {
+    "path": "/connectors/validate",
+    "method": "POST",
+    "params": [
+      "host",
+      "url",
+      "endpoint"
+    ],
+    "category": "url_fetch",
+    "note": "Connector validator -- DNS rebinding / TOCTOU"
+  },
+  {
+    "path": "/api/connectors/validate",
+    "method": "POST",
+    "params": [
+      "host",
+      "url"
+    ],
+    "category": "url_fetch",
+    "note": "Connector validate API"
+  },
+  {
+    "path": "/connectors/cloud-metadata",
+    "method": "POST",
+    "params": [
+      "url",
+      "endpoint",
+      "provider"
+    ],
+    "category": "url_fetch",
+    "note": "Cloud metadata connector"
+  },
+  {
+    "path": "/api/connectors/cloud-metadata",
+    "method": "POST",
+    "params": [
+      "url",
+      "endpoint",
+      "custom_endpoint"
+    ],
+    "category": "url_fetch",
+    "note": "Cloud metadata API"
+  },
+  {
+    "path": "/admin/fetch",
+    "method": "POST",
+    "params": [
+      "url"
+    ],
+    "category": "url_fetch",
+    "note": "Admin fetch endpoint"
+  },
+  {
+    "path": "/api/admin/asset-discovery",
+    "method": "POST",
+    "params": [
+      "target",
+      "url"
+    ],
+    "category": "crawl_monitor",
+    "note": "Admin asset discovery -- blind SSRF"
+  },
+  {
+    "path": "/api-console/test",
+    "method": "POST",
+    "params": [
+      "url",
+      "endpoint_url"
+    ],
+    "category": "url_fetch",
+    "note": "API console test"
+  },
+  {
+    "path": "/api/console/test-endpoint",
+    "method": "POST",
+    "params": [
+      "endpoint_url",
+      "url"
+    ],
+    "category": "url_fetch",
+    "note": "API endpoint tester -- authenticated SSRF"
+  },
+  {
+    "path": "/api/test",
+    "method": "POST",
+    "params": [
+      "url",
+      "endpoint"
+    ],
+    "category": "url_fetch",
+    "note": "Generic API tester"
+  },
+  {
+    "path": "/integrations",
+    "method": "POST",
+    "params": [
+      "url",
+      "api_url",
+      "endpoint"
+    ],
+    "category": "url_fetch",
+    "note": "Integration hub"
+  },
+  {
+    "path": "/integrations/connect",
+    "method": "POST",
+    "params": [
+      "url",
+      "endpoint",
+      "api_url"
+    ],
+    "category": "url_fetch",
+    "note": "Integration connector"
+  },
+  {
+    "path": "/integrations/sync",
+    "method": "POST",
+    "params": [
+      "url",
+      "source"
+    ],
+    "category": "url_fetch",
+    "note": "Integration sync from URL"
+  },
+  {
+    "path": "/api/monitoring/container",
+    "method": "GET",
+    "params": [
+      "endpoint",
+      "url"
+    ],
+    "category": "crawl_monitor",
+    "note": "Container monitoring -- Docker API exposure"
+  },
+  {
+    "path": "/api/monitoring/k8s",
+    "method": "POST",
+    "params": [
+      "api_server",
+      "url"
+    ],
+    "category": "crawl_monitor",
+    "note": "Kubernetes health -- attacker-controlled api_server"
+  }
+]
