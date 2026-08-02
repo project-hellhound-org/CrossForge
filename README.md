@@ -7,52 +7,43 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.10+-blue?style=flat-square&logo=python&logoColor=white"/>
-  <img src="https://img.shields.io/badge/version-2.0.0-red?style=flat-square"/>
-  <img src="https://img.shields.io/badge/engine-Hellhound--Spider-orange?style=flat-square"/>
+  <img src="https://img.shields.io/badge/version-1.1.0-red?style=flat-square"/>
   <img src="https://img.shields.io/badge/evasion-WAF--Adaptive-critical?style=flat-square"/>
-  <img src="https://img.shields.io/badge/governance-Authorized--Action--Gate-blueviolet?style=flat-square"/>
   <img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square"/>
   <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey?style=flat-square"/>
 </p>
 
 <p align="center">
-  <b>10-Phase Pipeline &nbsp;·&nbsp; Authorized Action Gate &nbsp;·&nbsp; File Upload SSRF &nbsp;·&nbsp; Predictable Path Discovery &nbsp;·&nbsp; Zero False Positives</b>
+  <b>10-Phase Pipeline &nbsp;·&nbsp; Differential Probing &nbsp;·&nbsp; Authorized Action Gate &nbsp;·&nbsp; OOB-Verified &nbsp;·&nbsp; Zero False Positives</b>
 </p>
 
 ---
 
 ## Overview
 
-CrossForge is an enterprise-grade autonomous SSRF (Server-Side Request Forgery) detection, exploitation, and verification agent built for modern web targets. It pairs a SPA-aware native crawler with a 10-phase detection pipeline that triages, baselines, classifies, fingerprints, probes, and verifies every SSRF-plausible parameter on the target — including multipart file uploads, predictable endpoints, and complex API context classes.
+CrossForge is an enterprise-grade autonomous SSRF (Server-Side Request Forgery) detection, exploitation, and verification agent built for modern web targets. It pairs a SPA-aware native crawler, wordlist-based predictable path discovery, and file-upload SSRF probing with a 10-phase detection pipeline. 
 
-CrossForge introduces strict safety governance via the **Authorized Action Gate** (`core/authorized_action_gate.py`), ensuring active internal network probing, protocol-pivoting, and metadata extraction require explicit operator proposal review and authorization.
+CrossForge incorporates a strict **Authorized Action Gate** governance system — ensuring evidence collection and active pivots into internal networks require explicit operator authorization, reviewable via CLI interactive proposal approval (`--review`).
 
----
-
-## What's New in v2.0.0
-
-- **Authorized Action Gate & Interactive Review (`--review`)** — Hard stop between detection/verification (Phase 4) and active internal service fingerprinting/extraction (Phase 6+). Pending action proposals are saved to `report.json` and can be reviewed, approved, or declined interactively using `crossforge --review report.json`.
-- **File Upload SSRF Probe (`core/file_upload_probe.py`)** — Detects SSRF vectors in uploaded document content (SVG `<image href>`, DOCX external relationship XML, XML XXE entities).
-- **Predictable Path Discovery (`core/path_probe.py`)** — Wordlist-driven pre-recon (`core/payloads/ssrf_paths.json`) that uncovers hidden, unlisted, and framework-default SSRF endpoints prior to Phase 0 prescoring.
-- **Updated Package Structure (`core/`)** — Refactored and modularized codebase root structure with `main.py` entry point.
+Every finding is verified via differential z-score analysis or out-of-band callback confirmation, timestamped, and delivered with a ready-to-run `curl` PoC, pending action proposals, and SARIF 2.1.0 report artifacts.
 
 ---
 
 ## Features
 
-- **10-Phase Autonomous Pipeline** — Surface Triage → Baseline → Context Classify → WAF Fingerprint → Differential Probe → OOB Correlation → Evidence Engine → Chain/Pivot → Confidence Score → Adaptive Feedback
-- **Authorized Action Gate Governance** — Strict authorization gate separating non-destructive anomaly detection from active internal resource interaction
-- **Predictable Path Recon** — Pre-scan wordlist discovery for unlisted preview, proxy, and webhook paths
-- **File Upload SSRF Vectors** — Inspects SVG, DOCX, and XML upload handlers for embedded remote resource references
-- **Native BFS Crawler** — Read-only crawl with JS static analysis, form parsing, and OpenAPI/Swagger auto-discovery; no spider file required
-- **Differential Probing** — z-score anomaly detection on timing, content-length, redirect depth, and status code — capped at `10.0` with a 2-dimension noise floor to eliminate false positives
+- **10-Phase Autonomous Pipeline** — Surface Triage → Baseline → Context Classify → WAF Fingerprint → Differential Probe → OOB Correlation → Authorized Action Gate & Evidence Engine → Chain/Pivot → Confidence Score → Adaptive Feedback
+- **Predictable Path Discovery (`core/path_probe.py`)** — Wordlist-based recon probing for unlisted, framework-standard, and hidden SSRF-prone endpoints
+- **File Upload SSRF Probe (`core/file_upload_probe.py`)** — Detects SSRF vectors inside uploaded SVG (`<image>`, `<use>`), OOXML (`DOCX` relationships), and XML (`XXE SYSTEM`) payloads
+- **Authorized Action Gate (`core/authorized_action_gate.py`)** — Hard governance stop between Phase 4 detection and internal service data extraction/pivoting
+- **Interactive Proposal Review (`--review`)** — CLI interactive workflow to inspect, approve, or decline pending action proposals serialized in scan reports
+- **Native BFS Crawler** — Read-only crawl with static JS analysis (`fetch`/`axios`/`XHR`), form parsing, and OpenAPI/GraphQL auto-discovery
+- **Differential Probing** — z-score anomaly detection on timing, content-length, redirect depth, and status code (capped at `10.0` with a 2-dimension noise floor)
 - **OOB Blind SSRF Confirmation** — Per-candidate Interactsh tokens; async pattern detection for FIRM-tier findings without guessing
 - **Evidence Engine** — Cloud IMDS (AWS/GCP/Azure), Kubernetes API, ECS Metadata, Oracle Cloud, Redis/Memcached banner, file read — schema-matched artifact extraction for CERTAIN-tier confirmation
-- **WAF Fingerprinting & Evasion** — 11 vendor signatures (Cloudflare, Akamai, AWS WAF, Imperva, F5, etc.) with per-vendor adaptive mutation chains
+- **WAF Fingerprinting & Evasion** — 11 vendor signatures with per-vendor adaptive mutation chains
 - **Chain / Pivot Detection** — Second-order SSRF, DNS rebinding detection, K8s/ECS lateral pivot, up to `max_hops=3` depth
-- **Confidence Scoring System** — 4-tier confidence model (TENTATIVE → FIRM → CERTAIN → CRITICAL+) with known-exploit escalation and reduction caps
-- **Authenticated Scanning** — Cookie, Bearer token, API key injection; auto-detected from spider headers
-- **Structured Reporting** — JSON + SARIF 2.1.0 output; `curl` PoC per finding; CVSS scores per tier
+- **Confidence Scoring System** — 4-tier confidence model (`TENTATIVE` → `FIRM` → `CERTAIN` → `CRITICAL+`) with known-exploit escalation
+- **Structured Reporting** — JSON + SARIF 2.1.0 output; `curl` PoC per finding; action proposals serialization
 
 ---
 
@@ -85,14 +76,8 @@ python3 main.py --version
 # Basic detect scan from Hellhound Spider JSON file
 python3 main.py --input spider_output.json http://target.com
 
-# No spider file — CrossForge crawls the target itself & runs Predictable Path discovery
+# No spider file — CrossForge crawls target & probes predictable paths
 python3 main.py http://target.com
-
-# Review pending action proposals from a previous scan's report
-python3 main.py --review reports/crossforge_report.json
-
-# Native crawl scoped to an extra API subdomain, deeper BFS
-python3 main.py http://target.com --crawl-scope api.target.com --crawl-depth 8
 
 # With OOB for blind SSRF confirmation (FIRM tier findings)
 python3 main.py --input spider.json --oob https://oast.pro
@@ -106,7 +91,10 @@ python3 main.py --input spider.json \
            --bearer eyJhbGciOiJIUzI1NiJ9... \
            --proxy http://127.0.0.1:8080
 
-# Exploit mode — unlocks Gopher/Dict protocol banner probing (requires YES acknowledgment)
+# Interactive CLI Review of pending action proposals from a prior scan
+python3 main.py --review ./reports/report.json
+
+# Exploit mode — unlocks Gopher/Dict protocol probing (requires YES acknowledgment)
 python3 main.py --input spider.json --mode detect_exploit
 ```
 
@@ -120,7 +108,7 @@ CrossForge supports three input modes that all converge on the same triage and f
 |------|------|-------------|
 | **Spider JSON** (recommended) | `--input spider.json` | Output from [Hellhound Spider](https://github.com/project-hellhound-org/X5Sentry). Auto-detected by `endpoints` + `meta` keys. Provides full surface coverage. |
 | **Flat Candidate Array** | `--input candidates.json` | JSON array of explicit candidate objects. Each entry requires `url`, `method`, `parameter`, `location`. |
-| **Native Crawl** | *(no `--input`)* | Provide a target URL only. CrossForge crawls the target via BFS, form parsing, static JS analysis, and Predictable Path probing. |
+| **Native Crawl & Path Discovery** | *(no `--input`)* | Provide a target URL only. CrossForge crawls the target via BFS, form parsing, static JS analysis, and wordlist path probing — then feeds discovery through the same pipeline. |
 
 ---
 
@@ -128,13 +116,13 @@ CrossForge supports three input modes that all converge on the same triage and f
 
 | Phase | Name | What it does |
 |-------|------|-------------|
-| `00` | **Surface Triage** | Pre-score all candidates HIGH/MEDIUM/LOW via `prescore.py`; drop zero-score entries before any I/O |
-| `01` | **Baseline & Path Recon** | 5 clean samples per candidate; Predictable Path wordlist probing (`path_probe.py`); File Upload SSRF detection (`file_upload_probe.py`); infra-noise fingerprinting |
-| `02` | **Context Classifier** | Classify each candidate as `fetch_url` / `redirect` / `file_include` / `crlf_injection` / `host_header` |
+| `00` | **Surface Triage** | Pre-score candidates HIGH/MEDIUM/LOW via `prescore.py`; drop zero-score entries before I/O |
+| `01` | **Baseline & Recon** | 5 clean samples per candidate; infra-noise detection; predictable path discovery (`path_probe.py`) |
+| `02` | **Context Classifier** | Classify candidates: `fetch_url` / `redirect` / `file_include` / `crlf_injection` / `host_header` / `file_upload` |
 | `03` | **WAF Fingerprint** | 11 vendor signatures; score-based matching; per-vendor adaptive mutation chains via `waf_detector.py` |
 | `04` | **Differential Probe** | z-score anomaly on timing, redirect depth, status code, content-length (cap 10.0, 2-dim floor) |
 | `05` | **OOB Correlation** | Per-candidate Interactsh token injection; async callback polling; DNS/HTTP pattern matching |
-| `06` | **Evidence Engine & Gate** | Gated by `AuthorizedActionGate`; AWS IMDS, GCP metadata, Azure IMDS, K8s API, ECS, Oracle Cloud, Redis/Memcached, file-read probing |
+| `06` | **Authorized Gate & Evidence** | Enforces action permits; Cloud IMDS, K8s API, ECS, Oracle Cloud, Redis/Memcached, file read |
 | `07` | **Chain / Pivot** | Second-order SSRF; DNS rebinding detection; K8s/ECS lateral pivot; `max_hops=3` recursion |
 | `08` | **Confidence Scoring** | Known-exploit registry escalation; reduction caps; per-candidate final tier assignment |
 | `09` | **Reporter & Proposals** | JSON report + SARIF 2.1.0; pending action proposals serialization; `curl` PoC per finding |
@@ -153,6 +141,15 @@ CrossForge supports three input modes that all converge on the same triage and f
 
 ---
 
+## Scan Modes
+
+| Mode | Flag | Description |
+|------|------|-------------|
+| `detect` | *(default)* | Read-only detection. Safe for production targets. All 10 phases active with Authorized Action Gate gating evidence/pivots. |
+| `detect_exploit` | `--mode detect_exploit` | Unlocks Gopher/Dict protocol banner probing. Still read-only. Requires operator `YES` acknowledgment at runtime. **Pentest-only.** |
+
+---
+
 ## Components
 
 | Module | Role |
@@ -167,7 +164,7 @@ CrossForge supports three input modes that all converge on the same triage and f
 | `core/spider_adapter.py` | Converts Hellhound Spider JSON or flat arrays into scored `Candidate` objects |
 | `core/prescore.py` | Phase 00 — relevance scoring and triage queue ordering |
 | `core/baseline.py` | Phase 01 — baseline profiling, infra-noise tracking, auth-redirect detection |
-| `core/context_classifier.py` | Phase 02 — parameter context classification into 5 SSRF context classes |
+| `core/context_classifier.py` | Phase 02 — parameter context classification into 6 SSRF context classes |
 | `core/waf_detector.py` | Phase 03 — 11 WAF vendor fingerprinting with adaptive evasion mutation chains |
 | `core/differential.py` | Phase 04 — z-score statistical anomaly probing engine |
 | `core/oob_hub.py` | Phase 05 — Interactsh OOB token lifecycle management and async polling |
@@ -177,7 +174,7 @@ CrossForge supports three input modes that all converge on the same triage and f
 | `core/reporter.py` | Phase 09 — JSON + SARIF 2.1.0 report generation and `curl` PoC builder |
 | `core/feedback.py` | Phase 10 — cross-candidate pattern propagation and adaptive chain caching |
 | `core/http_client.py` | Async HTTP engine with rate limiting, proxy support, redirect handling |
-| `core/models.py` | Core data models — `Candidate`, `ProbeResult`, `BaselineProfile`, `ScanReport`, etc. |
+| `core/models.py` | Core data models — `Candidate`, `ProbeResult`, `FindingProposal`, `ScanReport`, etc. |
 | `core/payload_engine.py` | SSRF payload construction — Gopher, Dict, cloud metadata URLs, mutation chains |
 | `core/auth_manager.py` | Authentication injection — Bearer, Cookie, API key; spider header auto-detection |
 | `core/loader.py` | Input file ingestion — Spider JSON and flat candidate array format parsing |
@@ -185,6 +182,14 @@ CrossForge supports three input modes that all converge on the same triage and f
 | `core/known_exploits.py` | Known-exploit registry — escalation rules for internal services and cloud APIs |
 | `core/openapi_adapter.py` | OpenAPI/Swagger spec auto-discovery and candidate generation |
 | `core/graphql_adapter.py` | GraphQL introspection-based SSRF surface extraction |
+| `core/dns_intel.py` | DNS intelligence gathering for rebinding and pivot analysis |
+| `core/js_intel.py` | Static JS analysis — `fetch`/`axios`/`XHR` string literal extraction |
+| `core/recon_quality.py` | Crawler output quality scoring and coverage gap detection |
+| `core/wayback_probe.py` | Wayback Machine historical endpoint discovery |
+| `core/subdomain_enum.py` | Subdomain enumeration for crawl scope expansion |
+| `core/spa_detector.py` | SPA framework detection — React, Angular, Vue, Next.js |
+| `core/vuln_classifier.py` | Post-probe vulnerability classification and severity mapping |
+| `install.sh` | High-fidelity installer — creates `.venv`, installs deps, deploys global command |
 
 ---
 
@@ -207,7 +212,7 @@ Authentication:
 OOB:
   --oob URL               Interactsh server for blind SSRF confirmation
 
-Crawl (when --input is omitted):
+Crawl & Recon (when --input is omitted):
   --crawl-depth N         BFS max depth (default: 5)
   --crawl-max-pages N     Page budget (default: 40, ceiling: 400)
   --crawl-scope HOST      Extra in-scope host (repeatable)
@@ -220,7 +225,7 @@ Scan Control:
   --max-hops N            SSRF chain depth limit (default: 3)
   --no-openapi            Disable OpenAPI/Swagger auto-discovery
   --proxy URL             HTTP proxy (e.g. http://127.0.0.1:8080)
-  --config PATH           Path to config.yaml
+  --config PATH           Path to config.yaml (default: ./core/config.yaml)
 
 Output:
   --output DIR            Report directory (default: ./reports)
