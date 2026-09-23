@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - OpenAPI / Swagger Adapter
+RAVAGER SSRF v2.0 - OpenAPI / Swagger Adapter
 =================================================
 WHY THIS MODULE EXISTS
 -----------------------

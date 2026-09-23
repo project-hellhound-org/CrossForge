@@ -1,5 +1,5 @@
 """
-CrossForge SSRF Agent — Core Orchestrator
+RAVAGER SSRF Agent — Core Orchestrator
 ==========================================
 10-phase pipeline with per-phase clear console output.
 Fixes all issues seen in the Juice Shop run:
@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -50,7 +51,7 @@ from core import scoring, feedback, reporter
 from core.auth_manager   import AuthManager
 from core.known_exploits import get_registry
 
-logger = logging.getLogger("crossforge.agent")
+logger = logging.getLogger("ravager.agent")
 
 _DEFAULT_CONFIG = Path(__file__).parent / "config.yaml"
 
@@ -67,7 +68,7 @@ _LOGIN_REDIRECT_RE = re.compile(
 )
 
 
-class CrossForgeAgent:
+class RavagerAgent:
 
     def __init__(self, config_path: "str | Path" = _DEFAULT_CONFIG):
         with open(config_path) as f:
@@ -94,7 +95,12 @@ class CrossForgeAgent:
         oob_cfg     = self.cfg.get("oob", {})
         server_url  = oob_cfg.get("server_url")
         self._oob   = (
-            OOBHub(server_url, oob_cfg.get("poll_interval", 5.0))
+            OOBHub(
+                server_url,
+                oob_cfg.get("poll_interval", 5.0),
+                proxy=http_cfg.get("proxy"),
+                oob_wait=float(oob_cfg.get("oob_wait", 60)),
+            )
             if server_url else None
         )
 
@@ -139,7 +145,7 @@ class CrossForgeAgent:
         # ════════════════════════════════════════════════════════════════
         # RECON — NATIVE CRAWL (only when no --input spider file was given)
         # ════════════════════════════════════════════════════════════════
-        # WHY: CrossForge previously *required* an externally-produced
+        # WHY: RAVAGER previously *required* an externally-produced
         # Spider JSON file. If the operator only has a target URL, there
         # was no path to a scan at all. When candidates_path is absent,
         # we crawl the target ourselves and feed the result through the
@@ -438,9 +444,48 @@ class CrossForgeAgent:
 
         # Only process candidates with a valid baseline
         active = [c for c in candidates if c.baseline is not None]
+
+        # ═══════════════════════════════════════════════════════════════
+        # [RAVAGER-FIX] Baseline failure recovery
+        # ═══════════════════════════════════════════════════════════════
+        # If ALL baselines failed, try to force the highest-scored
+        # candidate through with a synthetic baseline. This prevents
+        # the "skip everything" failure mode when the target is
+        # reachable but returns unexpected status codes (403, 500, etc.)
+        # that cause baseline profiling to produce unstable results.
+        if not active and candidates:
+            warn("All baselines failed — attempting recovery with relaxed baseline...")
+            # Sort by pre_score descending, try the top 3 candidates
+            recovery_pool = sorted(
+                [c for c in candidates if c.baseline is None],
+                key=lambda c: getattr(c, 'pre_score', 0),
+                reverse=True,
+            )[:3]
+            for cand in recovery_pool:
+                try:
+                    # Single-attempt baseline — just need ONE successful request
+                    bl = await establish_baseline(self._client, cand)
+                    if bl is not None:
+                        cand.baseline = bl
+                        active.append(cand)
+                        ok(f"Recovery baseline succeeded for {_short_label(cand)}")
+                        break
+                except Exception:
+                    continue
+
         if not active:
-            warn("No candidates have a usable baseline. Scan cannot continue.")
+            err("No candidates have a usable baseline — scan cannot continue.")
+            if auth_skipped:
+                err(f"  → {auth_skipped} endpoint(s) redirected to login (auth required).")
+                tprint(f"  → {color('Fix:', C.BWHITE)} rage --cookie 'session=YOUR_COOKIE' <target>")
+            if baseline_fail:
+                err(f"  → {baseline_fail} endpoint(s) unreachable (connection/TLS/DNS errors).")
+                tprint(f"  → {color('Fix:', C.BWHITE)} Verify the target is running and accessible.")
+            if not auth_skipped and not baseline_fail:
+                err("  → No candidates were loaded from the input file.")
+                tprint(f"  → {color('Fix:', C.BWHITE)} Check your spider file or target URL.")
             report.status = "no_candidates"
+            report.gap_reason = f"auth_skipped={auth_skipped}, unreachable={baseline_fail}, total={len(candidates)}"
             status.stop()
             return report
 
@@ -608,6 +653,67 @@ class CrossForgeAgent:
         ])
 
         # ════════════════════════════════════════════════════════════════
+        # [v2-NEW] 3-MODE EXPLOITATION PROMPT
+        # ════════════════════════════════════════════════════════════════
+        # After detection completes and findings exist, prompt the operator
+        # to choose how to proceed: Default (low-impact evidence),
+        # Exploit_Chain (full suite), or No (report only).
+        # ════════════════════════════════════════════════════════════════
+        total_findings = sum(findings_count.values())
+        exploit_cfg = self.cfg.get("exploitation", {})
+        auto_mode = exploit_cfg.get("auto_mode")
+
+        if total_findings > 0 and auto_mode != "no":
+            if auto_mode in ("default", "exploit_chain"):
+                # Pre-selected via --mode flag
+                exploit_mode = auto_mode
+                from core.console import info as _info
+                _info(f"Exploitation mode pre-selected via CLI: {exploit_mode}")
+            elif exploit_cfg.get("auto_default"):
+                exploit_mode = "default"
+                from core.console import info as _info
+                _info("Auto-default exploitation mode (config: auto_default=true)")
+            else:
+                from core.console import exploitation_prompt
+                no_tty = not sys.stdin.isatty()
+                exploit_mode = exploitation_prompt(total_findings, no_tty=no_tty)
+        else:
+            exploit_mode = "no"
+
+        # Execute exploitation based on selected mode
+        if exploit_mode != "no" and total_findings > 0:
+            from core.exploit_dispatcher import ExploitDispatcher
+            dispatcher = ExploitDispatcher(self._client, self.cfg)
+
+            lifecycle_header(5, f"MODE: {exploit_mode.upper()}")
+            for finding in report.findings:
+                # Find the matching candidate
+                cand_id = finding.details.get("candidate_id", "")
+                evidence = finding.details.get("evidence_artifacts", [])
+                # Run exploit modules against this finding
+                try:
+                    exploit_results = await dispatcher.run_against_finding(
+                        finding._candidate if hasattr(finding, "_candidate") else None,
+                        finding,
+                        evidence,
+                        mode=exploit_mode,
+                    )
+                    if exploit_results:
+                        finding.details["exploit_results"] = [
+                            r.to_dict() for r in exploit_results
+                        ]
+                except Exception as exc:
+                    logger.warning("Exploit dispatch failed for %s: %s", cand_id[:8], exc)
+
+            lifecycle_result(5, [
+                ("Exploitation mode",  color(exploit_mode.upper(), C.BRED if exploit_mode == "exploit_chain" else C.BGREEN)),
+                ("Modules executed",   color(str(len(dispatcher.audit_trail)), C.BWHITE)),
+            ])
+        elif total_findings > 0:
+            from core.console import dim as _dim
+            _dim("Exploitation skipped — reporting from detection findings only.")
+
+        # ════════════════════════════════════════════════════════════════
         # DEDUPLICATION — collapse identical-signal cross-parameter dupes
         # ════════════════════════════════════════════════════════════════
         # See core/reporter.py::dedupe_findings for the full rationale.
@@ -633,7 +739,22 @@ class CrossForgeAgent:
         # FINAL DRAIN + REPORTS
         # ════════════════════════════════════════════════════════════════
         if self._oob:
+            # Final drain poll before stopping
             await asyncio.sleep(self._oob.poll_interval * 2)
+
+            # [v2-NEW] OOB daemon mode for stored/second-order SSRF
+            upgraded_candidates = await self._oob.run_daemon(
+                report, {f.details.get("candidate_id", ""): f for f in report.findings},
+            )
+            if upgraded_candidates:
+                from core.stored_ssrf import upgrade_finding_for_stored_ssrf
+                import time as _time
+                for cid in upgraded_candidates:
+                    for f in report.findings:
+                        if f.details.get("candidate_id", "") == cid:
+                            upgrade_finding_for_stored_ssrf(f, delay_seconds=0)
+                            break
+
             await self._oob.stop_polling()
             health = self._oob.get_health()
             if health["poll_error_count"]:
@@ -652,8 +773,8 @@ class CrossForgeAgent:
         # was actually called by an operator for this engagement.
         report.authorized_action_log = list(self._gate.log)
 
-        json_path  = self._output_dir / "crossforge_report.json"
-        sarif_path = self._output_dir / "crossforge_report.sarif"
+        json_path  = self._output_dir / "ravager_report.json"
+        sarif_path = self._output_dir / "ravager_report.sarif"
         reporter.write_json_report(report, json_path)
         reporter.write_sarif_report(report, sarif_path)
 
@@ -964,16 +1085,21 @@ class CrossForgeAgent:
         print_finding_card(finding, idx=fidx)
 
         # Phase 10: Adaptive feedback
+        # [v2-FIX] Lowered threshold from CERTAIN/CRITICAL_PLUS to include
+        # FIRM tier — FIRM findings have OOB confirmation and should trigger
+        # feedback propagation to accelerate detection of related sinks.
         status.update(phase="10-feedback")
-        if tier in (ConfidenceTier.CERTAIN, ConfidenceTier.CRITICAL_PLUS):
-            print(f"[Phase 10] Propagating feedback for confirmed finding on {cand.parameter}...")
+        if tier in (ConfidenceTier.FIRM, ConfidenceTier.CERTAIN, ConfidenceTier.CRITICAL_PLUS):
+            from core.console import info as _fb_info
+            _fb_info(f"[Phase 10] Propagating feedback for {tier.value} finding on {cand.parameter}...")
             feedback.propagate_pattern(cand, _siblings)
             feedback.propagate_cloud_container_pattern(evidence, _siblings)
             if known_exploits:
                 from urllib.parse import urlparse
                 tgt_host = urlparse(cand.target_url).hostname or ""
                 feedback.propagate_known_exploits(evidence, _siblings, tgt_host)
-            print("[Phase 10] Feedback propagation complete.")
+            from core.console import ok as _fb_ok
+            _fb_ok("[Phase 10] Feedback propagation complete.")
 
         if self._oob:
             h = self._oob.get_health()
@@ -1007,7 +1133,7 @@ class CrossForgeAgent:
         index) to rebuild the Candidate needed for evidence collection —
         this is what lets the same call work whether it's made
         immediately after run() in the same process, or later via
-        `crossforge --review report.json` in a fresh process that never
+        `rage --review report.json` in a fresh process that never
         ran the scan itself. See CandidateSnapshot's docstring in
         core/authorized_action_gate.py.
 

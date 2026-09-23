@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - Authentication Manager
+RAVAGER SSRF v2.0 - Authentication Manager
 =============================================
 WHY THIS MODULE EXISTS
 -----------------------
@@ -19,7 +19,7 @@ meaningful differential data. This module:
 PHILOSOPHY: Auth injection is PASSIVE — we never attempt to acquire tokens
 via brute-force or credential stuffing. We only use tokens that were
 already present in the spider's traffic capture or supplied by the operator.
-This keeps HELLHOUND's behaviour within the scope of an authorized assessment.
+This keeps RAVAGER's behaviour within the scope of an authorized assessment.
 """
 
 from __future__ import annotations

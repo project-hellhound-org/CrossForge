@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - HTTP Client Layer
+RAVAGER SSRF v2.0 - HTTP Client Layer
 ==========================================
 v5 fixes applied:
   [P0-FIX] GET + BODY_JSON correction → auto-promotes to POST

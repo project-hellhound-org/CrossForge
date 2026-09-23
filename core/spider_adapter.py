@@ -1,5 +1,5 @@
 """
-CrossForge SSRF Agent — Spider JSON Adapter
+RAVAGER SSRF Agent — Spider JSON Adapter
 ============================================
 v5.1 fixes applied to v5.0 bugs observed in the Juice Shop run:
 
@@ -366,7 +366,7 @@ def _expand_endpoint(
     all_params: dict[str, str] = {}
     for bucket in bucket_location:
         for p in params_detail.get(bucket) or []:
-            # BUG 1 FIX: Hellhound Spider stores observed_values as lists.
+            # BUG 1 FIX: RAVAGER Spider stores observed_values as lists.
             # Unwrap to a single string here — all downstream code (prescore
             # Signal 3, http_client._inject, reporter PoC) expects str.
             all_params[p] = _unwrap_observed_value(observed_vals.get(p, ""))
@@ -485,8 +485,8 @@ def _infer_ssrf_candidates(
 
 def _unwrap_observed_value(raw) -> str:
     """
-    Hellhound Spider v13.x stores observed_values as {param: [v1, v2, ...]} — a
-    list of every value seen for that param across observed requests. CrossForge
+    RAVAGER Spider stores observed_values as {param: [v1, v2, ...]} — a
+    list of every value seen for that param across observed requests. RAVAGER
     needs a single string: the most representative (first) value.
     When raw is already a string (older spider formats, OpenAPI adapter), pass through.
     When raw is a list, take the first element and stringify it.

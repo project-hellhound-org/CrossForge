@@ -1,5 +1,5 @@
 """
-CrossForge SSRF Agent — Candidate Loader
+RAVAGER SSRF Agent — Candidate Loader
 ==========================================
 v5.1: uses the rebuilt spider_adapter with smart filtering and auth detection.
 """
@@ -13,7 +13,7 @@ from core.models import Candidate, ParamLocation
 from core.spider_adapter import detect_spider_format, adapt
 from core.console import ok, warn, info, dim, tprint, color, C
 
-logger = logging.getLogger("crossforge.loader")
+logger = logging.getLogger("ravager.loader")
 REQUIRED_KEYS   = ("url", "parameter")
 VALID_LOCATIONS = {loc.value for loc in ParamLocation}
 
@@ -58,7 +58,7 @@ def load_from_spider_dict(data: dict, source_label: str) -> "LoadResult":
     messages (e.g. the file path, or the crawled target URL) — it doesn't
     need to be a real file.
     """
-    tool   = data.get("meta", {}).get("tool", "Hellhound Spider")
+    tool   = data.get("meta", {}).get("tool", "RAVAGER Spider")
     target = data.get("meta", {}).get("target", "unknown")
     total  = len(data.get("endpoints", []))
     info(f"Spider format: {color(tool, C.BWHITE)} → {color(target, C.BCYAN)} ({color(str(total), C.BWHITE)} endpoints)")

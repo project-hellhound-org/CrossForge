@@ -1,5 +1,5 @@
 """
-CrossForge SSRF Agent — Recon Quality Gate (Phase 1 addition)
+RAVAGER SSRF Agent — Recon Quality Gate (Phase 1 addition)
 ================================================================
 WHY THIS MODULE EXISTS
 ------------------------
@@ -87,8 +87,8 @@ _BOT_BLOCK_MARKERS = re.compile(
 # as if they might be real. A random UUID guarantees no collision with a
 # genuine route.
 _CANARY_PATH_TEMPLATES = [
-    "/__crossforge-canary-{token}__",
-    "/__crossforge-canary-{token}__.html",
+    "/__ravager-canary-{token}__",
+    "/__ravager-canary-{token}__.html",
 ]
 
 _DUPLICATE_SHELL_THRESHOLD = 3   # ≥N identical bodies among REAL pages → shell/block

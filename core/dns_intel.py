@@ -1,5 +1,5 @@
 """
-CrossForge SSRF Agent — DNS Intelligence (Phase 1 addition)
+RAVAGER SSRF Agent — DNS Intelligence (Phase 1 addition)
 ================================================================
 WHY THIS MODULE EXISTS
 ------------------------
@@ -19,7 +19,7 @@ Two independent uses:
      APPLICATION's own hostname (from core/http_client.py's per-request
      `_resolve_host()`), never the hostname embedded in an SSRF payload,
      which is what a real TOCTOU rebind attack depends on. Fixing that
-     requires a resolver CrossForge controls independent of httpx's
+     requires a resolver RAVAGER controls independent of httpx's
      connection-time resolution — this module is that independent
      resolver. It does nothing about the rebind detector itself yet; it
      just makes the DNS layer a first-class, directly-callable capability
@@ -35,7 +35,7 @@ headless-render pass in core/crawler.py: try the real capability, and if
 the optional dependency (`dnspython`) isn't installed, fall back to
 what stdlib alone can do rather than failing the whole module.
 
-    pip install 'crossforge[dns]'   # installs dnspython
+    pip install 'ravager[dns]'   # installs dnspython
 
 Every lookup runs in a thread (`asyncio.to_thread`) because both
 `socket.getaddrinfo` and `dnspython`'s resolver are blocking calls — this

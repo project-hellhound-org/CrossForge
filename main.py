@@ -1,18 +1,18 @@
 """
-CrossForge SSRF Detection Agent — CLI Entry Point
+RAVAGER SSRF Detection Agent — CLI Entry Point
 ===================================================
 Usage:
-  crossforge [OPTIONS] <target_url>
-  crossforge [OPTIONS] --input <spiderfile.json>
-  crossforge [OPTIONS] --input <spiderfile.json> <target_url>
-  crossforge --help
-  crossforge --version
+  rage [OPTIONS] <target_url>
+  rage [OPTIONS] --input <spiderfile.json>
+  rage [OPTIONS] --input <spiderfile.json> <target_url>
+  rage --help
+  rage --version
 
 Examples:
-  crossforge --input spider.json http://localhost:5000
-  crossforge --input candidates.json --oob https://oast.pro --bearer eyJhb...
-  crossforge --input spider.json --mode detect_exploit --proxy http://127.0.0.1:8080
-  crossforge --input spider.json --rate 15 --timeout 12 --output /tmp/results
+  rage --input spider.json http://localhost:5000
+  rage --input candidates.json --oob https://oast.pro --bearer eyJhb...
+  rage --input spider.json --mode detect_exploit --proxy http://127.0.0.1:8080
+  rage --input spider.json --rate 15 --timeout 12 --output /tmp/results
 """
 
 from __future__ import annotations
@@ -36,24 +36,23 @@ from core.console import (
 # ─────────────────────────────────────────────────────────────────────────────
 
 BANNER = r"""
-   ______                 ______
-  / ____/________  _____ / ____/___  _________ ____
- / /   / ___/ __ \/ ___// /_  / __ \/ ___/ __ `/ _ \
-/ /___/ /  / /_/ (__  )/ __/ / /_/ / /  / /_/ /  __/
-\____/_/   \____/____/_/     \____/_/   \__, /\___/
-                                        /____/
+    ____  ___ _    _____   ____________
+   / __ \/   | |  / /   | / ____/ ____/ ____
+  / /_/ / /| | | / / /| |/ / __/ __/  / ___/
+ / _, _/ ___ | |/ / ___ / /_/ / /___  / /
+/_/ |_/_/  |_|___/_/  |_\____/_____/ /_/
 """
 
-VERSION = "1.0.0"
-TAGLINE = "Enterprise SSRF Detection · Exploit · Verify"
+VERSION = "2.0.0"
+TAGLINE = "Request Analysis & Validation Agent for Gateway Exploitation Research"
 
 
 def print_banner(mode: str = "DETECT") -> None:
     mode_col = C.BRED if "EXPLOIT" in mode.upper() else C.BCYAN
     tprint(color(BANNER, C.BRED + C.BOLD))
-    tprint(f"  {color('CrossForge', C.BRED + C.BOLD)} {color('SSRF Agent', C.BWHITE)}  "
-           f"{color('v' + VERSION, C.DIM)}   "
-           f"{color(TAGLINE, C.DIM)}")
+    tprint(f"  {color('RAVAGER', C.BRED + C.BOLD)} {color('SSRF Agent', C.BWHITE)}  "
+           f"{color('v' + VERSION, C.DIM)}")
+    tprint(f"  {color(TAGLINE, C.DIM)}")
     tprint(f"  Mode: {color(mode.upper(), mode_col, C.BOLD)}\n")
 
 
@@ -62,37 +61,37 @@ def print_banner(mode: str = "DETECT") -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 HELP_TEXT = f"""
-{color('CrossForge SSRF Agent v' + VERSION, C.BRED + C.BOLD)}
+{color('RAVAGER SSRF Agent v' + VERSION, C.BRED + C.BOLD)}
 {color('─' * 70, C.DIM)}
 
 {color('DESCRIPTION', C.BWHITE + C.BOLD)}
-  CrossForge is an enterprise-grade autonomous SSRF detection and verification
+  RAVAGER is an enterprise-grade autonomous SSRF detection and verification
   agent. It runs a 10-phase pipeline — surface triage, baseline establishment,
   context classification, WAF fingerprinting, differential probing, OOB
   correlation, evidence collection, chain pivoting, confidence scoring, and
   adaptive feedback — against every SSRF-plausible parameter on the target.
 
 {color('USAGE', C.BWHITE + C.BOLD)}
-  crossforge [OPTIONS] <target_url>
-  crossforge --input <spiderfile.json> [target_url] [OPTIONS]
+  rage [OPTIONS] <target_url>
+  rage --input <spiderfile.json> [target_url] [OPTIONS]
 
 {color('INPUT FORMATS', C.BWHITE + C.BOLD)}
   {color('Spider JSON  (FORMAT B, recommended)', C.BYELLOW)}
-    Output from the Hellhound Spider tool. Auto-detected by the presence
+    Output from the RAVAGER Spider tool. Auto-detected by the presence
     of "endpoints" + "meta" keys. Provides full surface coverage.
-    Example: crossforge --input spider_localhost_5000.json http://target.com
+    Example: rage --input spider_localhost_5000.json http://target.com
 
   {color('Flat candidate array  (FORMAT A)', C.BYELLOW)}
     A JSON array of explicit candidate objects. Each entry requires:
     url, method, parameter, location (query|body_json|body_form|header|cookie|path).
-    Example: crossforge --input webhooks.json
+    Example: rage --input webhooks.json
 
   {color('No --input — Native Crawl  (FORMAT C)', C.BYELLOW)}
-    No spider file? Give CrossForge just a target URL and it crawls the
+    No spider file? Give RAVAGER just a target URL and it crawls the
     site itself (BFS, form parsing, static JS analysis for SPA API
     calls) then feeds the discovery through the SAME triage/filter
     pipeline a supplied spider file gets. See --crawl-* flags below.
-    Example: crossforge http://target.com
+    Example: rage http://target.com
 
 {color('SCAN MODES', C.BWHITE + C.BOLD)}
   {color('detect          (DEFAULT)', C.BGREEN)}
@@ -162,31 +161,31 @@ HELP_TEXT = f"""
 
 {color('EXAMPLES', C.BWHITE + C.BOLD)}
   # Basic detect scan from spider file
-  crossforge --input spider.json http://target.com
+  rage --input spider.json http://target.com
 
-  # No spider file — CrossForge crawls the target itself
-  crossforge http://target.com --oob https://oast.pro
+  # No spider file — RAVAGER crawls the target itself
+  rage http://target.com --oob https://oast.pro
 
   # Native crawl scoped to an extra API subdomain, deeper BFS
-  crossforge http://target.com --crawl-scope api.target.com --crawl-depth 8
+  rage http://target.com --crawl-scope api.target.com --crawl-depth 8
 
   # Full pentest: OOB + auth + Burp proxy intercept
-  crossforge --input spider.json --oob https://oast.pro \\
+  rage --input spider.json --oob https://oast.pro \\
              --bearer eyJhbGciOiJIUzI1NiJ9.xxx \\
              --proxy http://127.0.0.1:8080
 
   # Exploit mode with API key auth
-  crossforge --input spider.json --mode detect_exploit \\
+  rage --input spider.json --mode detect_exploit \\
              --api-key sk-abc123 --api-key-header X-Api-Key
 
   # Quiet mode for CI/CD pipeline
-  crossforge --input candidates.json --quiet --output /tmp/crossforge-ci
+  rage --input candidates.json --quiet --output /tmp/ravager-ci
 
   # Verbose mode to see all candidate decisions
-  crossforge --input spider.json --verbose
+  rage --input spider.json --verbose
 
 {color('─' * 70, C.DIM)}
-{color('IMPORTANT', C.BYELLOW + C.BOLD)}: CrossForge must only be used against systems you are explicitly
+{color('IMPORTANT', C.BYELLOW + C.BOLD)}: RAVAGER must only be used against systems you are explicitly
 authorized to test. Unauthorized use may violate computer fraud laws.
 """
 
@@ -201,16 +200,19 @@ def print_help() -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="crossforge",
-        description="CrossForge SSRF Detection Agent",
+        prog="ravager",
+        description="RAVAGER SSRF Detection Agent",
         add_help=False,
     )
     p.add_argument("target",         nargs="?",   default=None, help="Target base URL")
     p.add_argument("--input",        "-i",        required=False, metavar="FILE",
                    help="Candidate file (Spider JSON or flat array JSON)")
     p.add_argument("--mode",                      default=None,
-                   choices=["detect", "detect_exploit"],
-                   help="Scan mode (detect | detect_exploit)")
+                   choices=["detect", "default", "exploit_chain", "no"],
+                   help="Exploitation mode: detect (detection only, prompt after), "
+                        "default (low-impact evidence auto), "
+                        "exploit_chain (full exploitation), "
+                        "no (skip exploitation, report only)")
     p.add_argument("--bearer",                    default=None,  metavar="TOKEN")
     p.add_argument("--api-key",      dest="api_key", default=None, metavar="KEY")
     p.add_argument("--api-key-header", dest="api_key_header", default="X-Api-Key")
@@ -218,7 +220,15 @@ def build_parser() -> argparse.ArgumentParser:
                    metavar="NAME=VALUE",
                    help="Session cookie (repeatable: --cookie a=b --cookie c=d)")
     p.add_argument("--oob",                       default=None,  metavar="URL",
-                   help="Interactsh server URL")
+                   help="Interactsh server URL for blind SSRF confirmation")
+    p.add_argument("--oob-wait",     dest="oob_wait", type=float, default=None,
+                   metavar="SECONDS",
+                   help="Post-scan OOB daemon polling duration for stored/second-order "
+                        "SSRF callbacks (default: 60s, 0=disable). Enters background "
+                        "polling mode after scan completes.")
+    p.add_argument("--dns-rebind",   dest="dns_rebind", action="store_true", default=False,
+                   help="Enable active DNS rebinding TOCTOU server for bypass testing. "
+                        "Requires DNS delegation or cooperating resolver.")
     p.add_argument("--proxy",                     default=None,  metavar="URL")
     p.add_argument("--rate",         type=float,  default=None,  metavar="N",
                    help="Requests per second (default 20)")
@@ -240,7 +250,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--review",                    default=None,  metavar="REPORT_JSON",
         help="Review pending action proposals from a prior scan's report.json — "
              "approve/decline evidence collection interactively. No scan is run.")
-    p.add_argument("--verbose",      "-v",        action="store_true", default=False)
+    p.add_argument("--verbose",      "-v",        action="store_true", default=True,
+                   help="Show all candidates including clean/skipped (ON by default)")
+    p.add_argument("--no-verbose",   dest="no_verbose", action="store_true", default=False,
+                   help="Suppress verbose candidate output")
     p.add_argument("--quiet",        "-q",        action="store_true", default=False)
     p.add_argument("--version",                   action="store_true", default=False)
     p.add_argument("--help",         "-h",        action="store_true", default=False)
@@ -253,13 +266,23 @@ def build_parser() -> argparse.ArgumentParser:
 
 def patch_config(cfg: dict, args: argparse.Namespace) -> dict:
     if args.mode:
-        cfg["scan_mode"] = args.mode
+        # Map v1 'detect_exploit' to v2 'exploit_chain' for backwards compat
+        mode = args.mode
+        if mode == "detect_exploit":
+            mode = "exploit_chain"
+        if mode in ("default", "exploit_chain", "no"):
+            cfg.setdefault("exploitation", {})["auto_mode"] = mode
+        cfg["scan_mode"] = mode
     if args.proxy:
         cfg.setdefault("http", {})["proxy"] = args.proxy
     if args.timeout:
         cfg.setdefault("http", {})["timeout"] = args.timeout
     if args.oob:
         cfg.setdefault("oob", {})["server_url"] = args.oob
+    if args.oob_wait is not None:
+        cfg.setdefault("oob", {})["oob_wait"] = args.oob_wait
+    if args.dns_rebind:
+        cfg.setdefault("chaining", {})["dns_rebind_server"] = True
     if args.bearer:
         cfg.setdefault("auth", {})["bearer_token"] = args.bearer
     if args.api_key:
@@ -397,8 +420,8 @@ def _normalize_target(raw: str) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 async def _run(tmp_config: str, candidates_path: "str | None", target_url: "str | None") -> None:
-    from core.agent import CrossForgeAgent
-    agent = CrossForgeAgent(tmp_config)
+    from core.agent import RavagerAgent
+    agent = RavagerAgent(tmp_config)
     await agent.run(candidates_path, target_url)
 
 
@@ -413,7 +436,7 @@ def main(argv: list[str] | None = None) -> None:
 
     # Version
     if args.version:
-        print(f"crossforge {VERSION}")
+        print(f"ravager {VERSION}")
         return
 
     # Help
@@ -445,12 +468,13 @@ def main(argv: list[str] | None = None) -> None:
         print_banner()
         err("No input file and no target URL specified.")
         tprint(f"  Use {color('--input <spiderfile.json>', C.BCYAN)}, or give a target URL "
-               f"to let CrossForge crawl it itself.")
-        tprint(f"  Run {color('crossforge --help', C.BCYAN)} to see all options.")
+               f"to let RAVAGER crawl it itself.")
+        tprint(f"  Run {color('rage --help', C.BCYAN)} to see all options.")
         sys.exit(1)
 
-    # Configure console
-    configure(verbose=args.verbose, quiet=args.quiet)
+    # Configure console — verbose is ON by default; --no-verbose or --quiet suppress it
+    effective_verbose = args.verbose and not args.no_verbose and not args.quiet
+    configure(verbose=effective_verbose, quiet=args.quiet)
 
     # Native-crawl mode needs a fully-qualified URL. See _normalize_target()
     # for exactly which typos this repairs (missing "//", missing scheme).

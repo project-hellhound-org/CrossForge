@@ -222,7 +222,7 @@ def test_proposal_json_round_trip_reconstructs_working_candidate():
 async def test_execute_works_from_reloaded_proposal_with_no_live_candidate():
     """The actual point of the snapshot: execute() must work when called
     with ONLY a proposal that came from disk — no live Candidate object,
-    simulating a fresh `crossforge --review` process."""
+    simulating a fresh `rage --review` process."""
     import json
     cand = _candidate()
     gate_a = AuthorizedActionGate(client=AsyncMock())

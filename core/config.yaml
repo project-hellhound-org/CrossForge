@@ -1,5 +1,5 @@
 # ============================================================
-# HELLHOUND SSRF v5.0 — Agent Configuration
+# RAVAGER SSRF v2.0.0 — Agent Configuration
 # ============================================================
 # scan_mode:
 #   detect           → read-only, safe for production targets (DEFAULT)
@@ -31,9 +31,14 @@ rate_limit:
 # ---- Out-of-band (OOB) collaboration server --------------------
 # Set server_url to your Interactsh instance to enable FIRM-tier
 # blind SSRF confirmation. Leave null for anomaly-only (TENTATIVE) mode.
+# Use --oob-wait <seconds> (CLI) or oob_wait below to enable post-scan
+# daemon polling for stored/second-order SSRF callbacks.
 oob:
   server_url: null       # e.g. "https://oast.pro" or self-hosted Interactsh
   poll_interval: 5.0     # seconds between /poll requests
+  oob_wait: 60           # seconds to continue polling after scan completes
+                         # for stored/second-order SSRF callbacks.
+                         # Set via --oob-wait on CLI. 0 = disable daemon mode.
 
 
 # ---- Authentication --------------------------------------------
@@ -42,8 +47,7 @@ auth:
   bearer_token: null     # raw JWT or opaque bearer token
   api_key: null          # raw API key value
   api_key_header: "X-Api-Key"
-  cookies:
-    session: ".eJwlzjsOw0AING7UKdgP7Dgy1jLAkpaO66i3D2WUk4zeh_Y84jzCdv7uOIB-8thA7Fhg0yLYKtsKqpMuchbp8lBpUoEde2xqg9sPbNizoEyi2c0c7PwxVRRPJVZ6v1wD2VXrFRsLWuNke-ylT6jZ0FhDVZightynXH8NQW-P69kLz4.ameQcw.I1-IFrtFd-GfU16Y5FqC-e9F05A"
+  cookies: {}            # Use --cookie NAME=VALUE on CLI
 
 
 # ---- OpenAPI / Swagger spec discovery -------------------------
@@ -86,15 +90,36 @@ waf:
 
 
 # ---- Phase 6: Evidence engine ---------------------------------
+# Evidence collection is now gated by the 3-mode exploitation prompt.
+# See 'exploitation' section below for mode control.
 evidence:
-  # Cloud metadata probes are always enabled — they are safe and non-destructive.
-  # Set aggressive: true to ALSO run port state mapping (scanning internal ports
-  # via the SSRF sink) and protocol banner probing (Redis INFO, Memcached stats).
-  # This generates real traffic to internal services. Recommended for pentest
-  # engagements only; not appropriate for passive or monitoring-only contexts.
-  # The spec requires safe non-destructive defaults — this is OFF by default.
-  aggressive: false      # set true to enable port_state_map and protocol_banner evidence
   spa_probe_count: 3     # random path probes to detect SPA catch-all before port mapping
+
+
+# ---- Exploitation mode -----------------------------------------
+# Controls the post-detection exploitation workflow.
+#
+# After Phases 0-5 (detection) complete and findings exist, the agent
+# prompts the operator to choose one of three modes:
+#
+#   default        Low-impact evidence only: cloud metadata reads, read-only
+#                  banner probes (Redis INFO, Memcached stats), file reads
+#                  (/etc/hostname, /etc/passwd), port state mapping, and
+#                  CRLF injection confirmation. No destructive actions.
+#
+#   exploit_chain  Full exploitation suite. Includes everything in 'default'
+#                  PLUS destructive exploit modules (Redis SLAVEOF, MySQL
+#                  injection, Tomcat WAR deploy, etc.). Each destructive
+#                  action requires per-action YES confirmation.
+#
+#   no             Skip exploitation entirely. Report from detection-only
+#                  findings (TENTATIVE/FIRM tier). Fastest option.
+#
+# The CLI --mode flag pre-selects the mode (bypasses prompt).
+# Set auto_default: true to skip the prompt and use 'default' automatically.
+exploitation:
+  auto_default: true     # auto-run low-impact evidence (no prompt) — was false in v1
+  auto_mode: null        # if set, overrides the prompt with this mode
 
 
 # ---- Phase 7: Second-order chaining ---------------------------
@@ -119,7 +144,7 @@ output:
 
 
 # ---- Native crawler (Phase 0 recon — only runs when --input is NOT given) --
-# CrossForge's own BFS crawler: same-origin discovery, form parsing (read-only
+# RAVAGER's own BFS crawler: same-origin discovery, form parsing (read-only
 # — forms are never submitted), static JS analysis for SPA API calls, and
 # robots.txt/sitemap.xml seeding. Output is fed through the SAME
 # spider_adapter triage/prescore pipeline a supplied spider file gets — see
@@ -140,7 +165,7 @@ crawl:
   respect_robots_as_seed: true # add robots.txt Disallow entries to the frontier (not a fence)
 
   # ---- Headless render escalation (core/crawler.py._run_headless_pass) ----
-  # Requires: pip install "crossforge[render]" && playwright install chromium
+  # Requires: pip install "ravager[render]" && playwright install chromium
   # Purely observational — watches network traffic + final DOM a real
   # headless Chromium produces. Never fills forms or clicks buttons; see
   # "WHAT THE HEADLESS PASS DELIBERATELY DOES NOT DO" in core/crawler.py.
@@ -167,7 +192,7 @@ crawl:
   # for operator visibility (also the prerequisite for a future real
   # DNS-rebinding detector). Informational only, never expands scope.
   # Full record-type enumeration (CNAME/MX/TXT/NS) needs the optional
-  # `dnspython` dependency (pip install "crossforge[dns]"); without it,
+  # `dnspython` dependency (pip install "ravager[dns]"); without it,
   # this still resolves A/AAAA via the stdlib.
   dns_intel_enabled: true
 
@@ -200,7 +225,7 @@ graphql:
 # are not documented in OpenAPI/GraphQL specs — e.g. /api/proxy, /preview,
 # /webhooks/verify, /connectors/cloud-metadata, /export/pdf.
 #
-# These paths are common across real SaaS platforms. CrossForge probes them
+# These paths are common across real SaaS platforms. RAVAGER probes them
 # with HEAD (falling back to GET) and creates Candidates from any path that
 # returns a non-404 response. Candidates flow through the full Phase 0-10
 # pipeline identically to Spider-discovered candidates.

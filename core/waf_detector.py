@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - Phase 3: WAF / Filter Fingerprinting
+RAVAGER SSRF v2.0 - Phase 3: WAF / Filter Fingerprinting
 ============================================================
 v5 additions:
   [v5-NEW] FortiWeb, Barracuda WAF, Citrix ADC/NetScaler detection

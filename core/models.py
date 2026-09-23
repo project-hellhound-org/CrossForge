@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - Core Data Models
+RAVAGER SSRF v2.0 - Core Data Models
 ========================================
 All shared dataclasses used across the 10-phase pipeline.
 v5 additions:
@@ -36,13 +36,15 @@ class ContextClass(str, Enum):
     VALIDATOR    = "validator"
     CRLF_INJECTION = "crlf_injection"   # v5: CRLF/header-injection sinks
     HOST_HEADER  = "host_header"        # v5: Host / X-Forwarded-Host injection
+    ASYNC_SINK   = "async_sink"         # v2: stored/second-order SSRF sinks
+    XML_BODY     = "xml_body"           # v2: XXE→SSRF via XML POST body
     UNKNOWN      = "unknown"
 
 
 class VulnType(str, Enum):
     """
     SSRF vulnerability surface taxonomy — 25 categories mapped directly to
-    the SSRF attack surface reference compiled for CrossForge Phase 1.
+    the SSRF attack surface reference compiled for RAVAGER Phase 1.
     Assigned by core/vuln_classifier.py after prescore; consumed by
     context_classifier.py (overrides generic ContextClass where more specific),
     reporter.py (included in JSON/SARIF output), and eventually the exploit
@@ -331,6 +333,10 @@ class KnownExploit:
     description:    str           = ""
     requires_auth:  bool          = False
     escalate_to:    str           = "critical"  # severity escalation target
+    # [v2-NEW] How the service was confirmed:
+    #   "port_inferred"    — detected by open port number only (caps at FIRM)
+    #   "banner_confirmed" — confirmed via protocol banner probe (can reach CERTAIN)
+    confirmation_method: str      = "port_inferred"
 
 
 # ---------------------------------------------------------------------------
@@ -421,7 +427,7 @@ class ScanReport:
     @classmethod
     def from_dict(cls, d: dict) -> "ScanReport":
         """Reconstructs a ScanReport from a persisted JSON report — used by
-        `crossforge --review` to load a report from a previous, separate
+        `rage --review` to load a report from a previous, separate
         process. authorized_action_log entries are kept as plain dicts
         (append-only history, never re-executed) rather than
         AuthorizedActionRecord objects."""

@@ -1,12 +1,21 @@
 """
-HELLHOUND SSRF v5.0 - Phase 5: OOB Correlation Hub
+RAVAGER SSRF v2.0.0 - Phase 5: OOB Correlation Hub
 =====================================================
-v5 additions:
-  [v5-NEW] originating_request capture when OOB server returns raw HTTP
-           interaction body (self-hosted Interactsh with --full-response)
-  [v5-NEW] Host header SSRF OOB support — tokens injected into both
-           standard SSRF params AND X-Forwarded-Host payloads
-  [v5-NEW] poll_error_count surfaced in get_health() for operator monitoring
+v2.0 changes:
+  [v2-FIX] Proxy-everything: OOB polling now routes through the
+           configured --proxy for consistent networking behavior and
+           full visibility in tools like Burp Suite.
+  [v2-NEW] oob_wait daemon mode: after the main scan completes, the
+           hub continues polling for stored/second-order SSRF callbacks
+           for a configurable duration (--oob-wait flag).
+  [v2-NEW] Structured interaction logging via console helpers instead
+           of raw logger.info dumps.
+
+Retained from v1:
+  originating_request capture when OOB server returns raw HTTP
+  interaction body (self-hosted Interactsh with --full-response)
+  Host header SSRF OOB support
+  poll_error_count surfaced in get_health()
 """
 
 from __future__ import annotations
@@ -17,11 +26,13 @@ import ipaddress
 import logging
 import re
 import secrets
+import time
 from collections import defaultdict
 
 import httpx
 
 from core.models import OOBEvent
+from core.console import ok, info, warn, dim, found, color, C, tprint
 
 logger = logging.getLogger(__name__)
 
@@ -32,16 +43,30 @@ class OOBHub:
     Maintains a queryable correlation timeline for Phase 5 blind SSRF confirmation.
     """
 
-    def __init__(self, server_url: str, poll_interval: float = 5.0):
+    def __init__(
+        self,
+        server_url: str,
+        poll_interval: float = 5.0,
+        proxy: str | None = None,
+        oob_wait: float = 60.0,
+    ):
         self.server_url    = server_url.rstrip("/")
         self.poll_interval = poll_interval
+        self.oob_wait      = oob_wait
 
         self._token_owner: dict[str, str]          = {}
         self.timeline:     dict[str, list[OOBEvent]] = defaultdict(list)
 
-        # NOTE: verify=False intentional — self-hosted Interactsh typically
-        # runs with self-signed TLS.
-        self._client = httpx.AsyncClient(timeout=10.0, verify=False)
+        # [v2-FIX] Proxy-everything: route OOB polling through the
+        # configured proxy for consistent networking and Burp visibility.
+        client_kwargs: dict = {
+            "timeout": 10.0,
+            "verify": False,  # self-hosted Interactsh typically uses self-signed TLS
+        }
+        if proxy:
+            client_kwargs["proxy"] = proxy
+
+        self._client = httpx.AsyncClient(**client_kwargs)
         self._polling_task: asyncio.Task | None = None
 
         self.poll_error_count: int      = 0
@@ -118,7 +143,7 @@ class OOBHub:
             if token not in raw:
                 continue
 
-            # [v5-NEW] Extract originating HTTP request body if present
+            # Extract originating HTTP request body if present
             orig_req: str | None = None
             raw_req_match = re.search(
                 r'"raw-request"\s*:\s*"([^"]+)"', raw
@@ -142,10 +167,89 @@ class OOBHub:
             )
             self.timeline[candidate_id].append(event)
             self._total_interactions += 1
-            logger.info(
-                "OOB interaction: candidate=%s token=%s protocol=%s remote=%s",
-                candidate_id[:8], token, event.protocol, event.remote_addr or "?",
+
+            # [v2-FIX] Structured console output instead of raw logger dump.
+            # Raw interaction data is only logged at DEBUG level.
+            found(
+                f"OOB callback: {color(candidate_id[:8], C.BWHITE)}  "
+                f"protocol={color(event.protocol, C.BCYAN)}  "
+                f"remote={color(event.remote_addr or '?', C.DIM)}"
             )
+            logger.debug(
+                "OOB raw interaction: candidate=%s token=%s raw=%s",
+                candidate_id[:8], token, raw[:200],
+            )
+
+    # ------------------------------------------------------------------
+    # [v2-NEW] Daemon mode for stored/second-order SSRF
+    # ------------------------------------------------------------------
+
+    async def run_daemon(
+        self,
+        report: "ScanReport",
+        findings_by_candidate: "dict[str, Finding]",
+    ) -> list[str]:
+        """
+        Continues polling the OOB server for oob_wait seconds after the
+        main scan completes. Any late-arriving interactions are correlated
+        with candidates and their findings are upgraded to FIRM tier.
+
+        Returns a list of candidate_ids that received late callbacks.
+
+        This is the stored/second-order SSRF detection mechanism:
+        - Webhooks that fire after registration
+        - PDF renders that fetch URLs asynchronously
+        - Email templates processed in background queues
+        - Import/export jobs that run on a schedule
+        """
+        if self.oob_wait <= 0:
+            return []
+
+        tprint()
+        info(
+            f"Entering OOB daemon mode — polling for "
+            f"{color(f'{self.oob_wait:.0f}s', C.BWHITE, C.BOLD)} "
+            f"for stored/second-order SSRF callbacks..."
+        )
+
+        upgraded: list[str] = []
+        known_before = set()
+        for cid, events in self.timeline.items():
+            if events:
+                known_before.add(cid)
+
+        t_start = time.monotonic()
+        while (time.monotonic() - t_start) < self.oob_wait:
+            try:
+                await self._poll_once()
+            except Exception as exc:
+                logger.debug("Daemon poll error: %s", exc)
+
+            # Check for new interactions
+            for cid, events in self.timeline.items():
+                if cid not in known_before and events:
+                    known_before.add(cid)
+                    upgraded.append(cid)
+                    ok(
+                        f"Stored SSRF confirmed: {color(cid[:8], C.BRED, C.BOLD)} "
+                        f"received late OOB callback after "
+                        f"{color(f'{time.monotonic() - t_start:.1f}s', C.BWHITE)} delay"
+                    )
+
+            elapsed = time.monotonic() - t_start
+            remaining = self.oob_wait - elapsed
+            if remaining > 0:
+                await asyncio.sleep(min(self.poll_interval, remaining))
+
+        if upgraded:
+            ok(
+                f"Daemon mode complete: {color(str(len(upgraded)), C.BRED, C.BOLD)} "
+                f"stored SSRF callback(s) confirmed"
+            )
+        else:
+            dim(f"Daemon mode complete: no late callbacks received in {self.oob_wait:.0f}s")
+
+        return upgraded
 
     # ------------------------------------------------------------------
     # Query API

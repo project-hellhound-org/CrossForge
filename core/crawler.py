@@ -1,86 +1,6 @@
 """
-CrossForge SSRF Agent — Native Adaptive Crawler (Recon, pre-Phase-0)
+RAVAGER SSRF Agent — Native Adaptive Crawler (Recon, pre-Phase-0)
 =======================================================================
-WHY THIS MODULE EXISTS
-------------------------
-Every previous version of CrossForge hard-required a pre-built Spider JSON
-file as input (see main.py: `if not args.input: err("No input file...")`).
-That's an external dependency the operator has to satisfy with a *different*
-tool before CrossForge can even start. This module removes that dependency:
-when no --input is supplied, CrossForge does its own recon.
-
-THIS IS NOT A SHORTCUT AROUND THE EXISTING TRIAGE LOGIC
-----------------------------------------------------------
-The crawler's ONLY job is discovery — finding endpoints, params, and forms.
-It does not decide what's SSRF-relevant. It emits its findings in the exact
-Spider-JSON shape (`{"endpoints": [...], "meta": {...},
-"target_response_headers": {...}}`) that spider_adapter.detect_spider_format()
-already recognises, so crawler-sourced candidates flow through the SAME
-word-boundary triage, prescore.score_candidate() relevance filtering,
-dedup, and HOST_HEADER gating that an externally-supplied spider file gets.
-A crawled "username" query param is dropped for the exact same reason a
-spider-supplied one is: prescore gives it 0.0 and spider_adapter.adapt()
-filters zero-score candidates before Phase 0 ever starts. One filtering
-codepath, two possible sources.
-
-DESIGN PRINCIPLES
--------------------
-  1. READ-ONLY RECON. GET requests only. Forms are PARSED for structure
-     (action, method, field names) but never SUBMITTED — CrossForge never
-     guesses at login credentials or triggers state changes during crawl.
-  2. SAME-ORIGIN SCOPE GUARD. Stays on the target's host by default.
-     --crawl-scope can add explicit extra hosts (e.g. an API subdomain);
-     arbitrary external links are never followed.
-  3. SESSION-SAFETY SKIP LIST. Logout/delete/deactivate-shaped paths are
-     never fetched, even via GET — GET-based logout endpoints are common
-     enough that blindly crawling them would kill an authenticated
-     session mid-scan. See _DESTRUCTIVE_PATH_RE.
-  4. ADAPTIVE BUDGET. A 12-page brochure site and a 3,000-route
-     application shouldn't cost the same request budget. AdaptiveBudget
-     tracks the *yield* (new in-scope links per page fetched) at each
-     BFS depth and expands or halts the page ceiling based on it —
-     genuinely adaptive to whatever's on the other end, not a fixed N.
-  5. JS-AWARE, WITH AN OPTIONAL REAL BROWSER. Linked and inline <script>
-     content is always statically pattern-matched for fetch()/axios/XHR
-     call strings — no dependency needed. When the static pass clearly
-     under-delivers (few endpoints found — the signature of a pure
-     client-side-routed SPA whose initial HTML is an empty shell) and
-     `playwright` is installed, a headless-Chromium pass renders the page
-     for real and watches the network traffic and final DOM it produces.
-     Escalate-on-demand, not always-on — a plain server-rendered site
-     never pays the cost of spinning up a browser.
-  6. robots.txt / sitemap.xml AS SEEDS, NOT FENCES. This is an authorised
-     pentest tool (operator already confirmed authorisation for exploit
-     mode elsewhere in the pipeline) — Disallow entries are exactly the
-     paths an attacker would try first, so they're added to the crawl
-     frontier rather than treated as an access restriction.
-
-WHAT THE HEADLESS PASS DELIBERATELY DOES NOT DO
----------------------------------------------------
-It does not fill in form fields with synthetic data and click Submit, and
-it does not click arbitrary on-page buttons to shake more routes loose.
-That's a real technique some SPA-scanning tools use, but it means the
-crawler performs state-changing actions on the target — creating records,
-triggering whatever an unlabelled button is wired to, submitting a
-half-filled form — during what's supposed to be read-only recon. That's a
-real risk on anything production-adjacent, and not a strong enough
-discovery win to accept silently as a default. Rendering the page and
-watching what it loads/calls on its own recovers most of the same SPA API
-surface without the target ever doing anything it wasn't already going to
-do on a normal page load. Interaction-driven discovery (form-fill,
-click-through) is a legitimate feature for a *separately scoped, opt-in*
-engagement mode — not something this module does by default.
-
-LIMITATIONS (documented, not hidden)
---------------------------------------
-  - Headless rendering is opt-in-by-availability: if `playwright` isn't
-    installed (`pip install crossforge[render]` +
-    `playwright install chromium`), the crawler logs one clear line and
-    falls back to the static pass only — it does not error out.
-  - No auth-flow traversal. If reaching the interesting surface requires
-    login, supply --bearer/--cookie so the crawler's requests (both the
-    static pass and the headless one) carry an already-authenticated
-    session; it will not attempt to log in itself.
 """
 
 from __future__ import annotations
@@ -127,10 +47,10 @@ class CrawlConfig:
     # 500KB-3MB+ per bundle); see _analyze_js_url's truncate-not-drop fix.
     # This cap now bounds the regex pass, not "whether analysis happens at all".
     respect_robots_as_seed: bool = True
-    user_agent: str = "CrossForge/1.0 (+authorised-security-assessment)"
+    user_agent: str = "RAVAGER/1.0 (+authorised-security-assessment)"
 
     # ---- Headless rendering pass (optional, requires `pip install
-    # crossforge[render]` then `playwright install chromium`) ----
+    # ravager[render]` then `playwright install chromium`) ----
     # Purely observational: loads each seed page in a real headless
     # Chromium, watches the network traffic and final DOM the page
     # produces *on its own*, and records what it sees. It does NOT fill
@@ -631,7 +551,7 @@ class NativeCrawler:
         endpoints = self._finalize_endpoints()
 
         meta = {
-            "tool": "CrossForge Native Crawler v1.0",
+            "tool": "RAVAGER Native Crawler v1.0",
             "target": str(base),
             "crawl_stats": {
                 "pages_fetched":        budget.pages_fetched,
@@ -736,7 +656,7 @@ class NativeCrawler:
         except ImportError:
             stats["skip_reason"] = (
                 "playwright not installed — "
-                "pip install 'crossforge[render]' && playwright install chromium"
+                "pip install 'ravager[render]' && playwright install chromium"
             )
             return stats
 
@@ -1396,7 +1316,7 @@ async def run_crawl(
     """
     section("RECON — NATIVE CRAWL (no spider file supplied)")
     info(f"Target: {color(target_url, C.BCYAN)}")
-    dim("No --input spider file given — CrossForge is crawling the target itself.")
+    dim("No --input spider file given — RAVAGER is crawling the target itself.")
 
     crawler = NativeCrawler(crawl_cfg, rate_limiter=rate_limiter, proxy=proxy, extra_headers=extra_headers)
     try:
@@ -1473,7 +1393,7 @@ async def run_crawl(
             "Crawler found 0 endpoints. If the target is a JavaScript-rendered "
             "SPA with no server-rendered links, static crawling under-reports — "
             "see LIMITATIONS in core/crawler.py. Try installing playwright for "
-            "the headless render pass (pip install 'crossforge[render]' && "
+            "the headless render pass (pip install 'ravager[render]' && "
             "playwright install chromium), or scope --crawl-scope wider."
         )
     tprint()

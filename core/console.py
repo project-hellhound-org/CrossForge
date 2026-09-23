@@ -1,5 +1,5 @@
 """
-CrossForge SSRF Agent — Console Layer
+RAVAGER SSRF Agent — Console Layer
 =======================================
 Borrowed and extended from LDAPi Detection Agent v15.0 console design.
 Provides ANSI-colored phase headers, finding cards, summary boxes, and
@@ -149,7 +149,7 @@ def lifecycle_result(stage: int, stats: list[tuple[str, str]], width: int = 70) 
 
 
 def phase_header(number: int, name: str = "", extra: str = "") -> None:
-    """Print a bordered phase banner — CrossForge style."""
+    """Print a bordered phase banner — RAVAGER style."""
     W = 76
     col, icon, default_name = _PHASE_META.get(number, (C.BCYAN, "▶", name or "PHASE"))
     display_name = (name or default_name).upper()
@@ -340,3 +340,98 @@ class StatusBoard:
             sys.stderr.write(status)
             sys.stderr.flush()
             time.sleep(0.12)
+
+
+# ---------------------------------------------------------------------------
+# Live per-candidate emission (v2.0 — real-time stage output)
+# ---------------------------------------------------------------------------
+
+def live_finding(stage: int, message: str) -> None:
+    """Emit a real-time per-candidate result into the current stage section.
+
+    Used during the interleaved per-candidate pipeline (Phases 2-10) to show
+    results as they happen within the correct lifecycle stage, rather than
+    waiting for retrospective summaries.
+    """
+    col = _LIFECYCLE_META.get(stage, (C.BCYAN,))[0]
+    tprint(f"  {col}│{C.RESET}  {message}")
+
+
+def stage_transition(from_stage: int, to_stage: int) -> None:
+    """Visual separator between lifecycle stages in the live output stream."""
+    from_col = _LIFECYCLE_META.get(from_stage, (C.DIM,))[0]
+    to_name  = _LIFECYCLE_META.get(to_stage, (C.BCYAN, "▶", "STAGE"))[2].strip()
+    tprint(f"\n  {from_col}{'─' * 60}{C.RESET}")
+    tprint(f"  {color('↓', C.DIM)}  Transitioning to {color(to_name, C.BOLD)}...\n")
+
+
+# ---------------------------------------------------------------------------
+# 3-mode exploitation prompt (v2.0 — post-detection operator choice)
+# ---------------------------------------------------------------------------
+
+_EXPLOIT_MODES = {
+    "1": "default",
+    "2": "exploit_chain",
+    "3": "no",
+    "default": "default",
+    "exploit_chain": "exploit_chain",
+    "no": "no",
+}
+
+
+def exploitation_prompt(findings_count: int, no_tty: bool = False) -> str:
+    """
+    Renders the 3-mode exploitation choice after detection completes.
+    Returns: "default", "exploit_chain", or "no".
+
+    If no_tty (non-interactive), returns "no" (safest default for CI/CD).
+    """
+    W = 68
+    tprint()
+    tprint(f"  {color('╔' + '═'*W + '╗', C.BYELLOW)}")
+    tprint(f"  {color('║', C.BYELLOW)}  {color('DETECTION COMPLETE — EXPLOITATION MODE SELECTION', C.BOLD + C.BWHITE)}"
+           f"{' ' * (W - 51)}{color('║', C.BYELLOW)}")
+    tprint(f"  {color('╠' + '═'*W + '╣', C.BYELLOW)}")
+    tprint(f"  {color('║', C.BYELLOW)}  {color(str(findings_count), C.BRED + C.BOLD)} finding(s) detected. Choose how to proceed:"
+           f"{' ' * max(0, W - 53 - len(str(findings_count)))}{color('║', C.BYELLOW)}")
+    tprint(f"  {color('║', C.BYELLOW)}{' ' * W}{color('║', C.BYELLOW)}")
+
+    # Option 1: Default
+    tprint(f"  {color('║', C.BYELLOW)}  {color('[1]', C.BGREEN + C.BOLD)} {color('Default', C.BGREEN + C.BOLD)}"
+           f" — Low-impact evidence collection{' ' * (W - 49)}{color('║', C.BYELLOW)}")
+    tprint(f"  {color('║', C.BYELLOW)}      Cloud metadata reads, read-only banner probes,"
+           f"{' ' * (W - 56)}{color('║', C.BYELLOW)}")
+    tprint(f"  {color('║', C.BYELLOW)}      file reads (/etc/hostname), port state mapping."
+           f"{' ' * (W - 55)}{color('║', C.BYELLOW)}")
+    tprint(f"  {color('║', C.BYELLOW)}{' ' * W}{color('║', C.BYELLOW)}")
+
+    # Option 2: Exploit Chain
+    tprint(f"  {color('║', C.BYELLOW)}  {color('[2]', C.BRED + C.BOLD)} {color('Exploit Chain', C.BRED + C.BOLD)}"
+           f" — Full exploitation suite{' ' * (W - 49)}{color('║', C.BYELLOW)}")
+    tprint(f"  {color('║', C.BYELLOW)}      All of Default + Redis RCE, MySQL injection,"
+           f"{' ' * (W - 55)}{color('║', C.BYELLOW)}")
+    tprint(f"  {color('║', C.BYELLOW)}      Tomcat WAR deploy, etc. Per-action confirmation."
+           f"{' ' * (W - 57)}{color('║', C.BYELLOW)}")
+    tprint(f"  {color('║', C.BYELLOW)}{' ' * W}{color('║', C.BYELLOW)}")
+
+    # Option 3: No
+    tprint(f"  {color('║', C.BYELLOW)}  {color('[3]', C.DIM + C.BOLD)} {color('No', C.DIM + C.BOLD)}"
+           f" — Skip exploitation, report from detection only{' ' * (W - 58)}{color('║', C.BYELLOW)}")
+    tprint(f"  {color('║', C.BYELLOW)}{' ' * W}{color('║', C.BYELLOW)}")
+    tprint(f"  {color('╚' + '═'*W + '╝', C.BYELLOW)}")
+
+    if no_tty:
+        dim("  Non-interactive session — defaulting to 'no' (safest).")
+        return "no"
+
+    sys.stdout.write(f"\n  {color('Select mode', C.BWHITE)} [{color('1', C.BGREEN)}/{color('2', C.BRED)}/{color('3', C.DIM)}]: ")
+    sys.stdout.flush()
+    try:
+        ans = input().strip().lower()
+    except EOFError:
+        ans = ""
+
+    mode = _EXPLOIT_MODES.get(ans, "no")
+    tprint(f"  → Mode selected: {color(mode.upper(), C.BRED if mode == 'exploit_chain' else C.BGREEN if mode == 'default' else C.DIM, C.BOLD)}\n")
+    return mode
+

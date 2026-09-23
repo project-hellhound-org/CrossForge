@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - Phase 9: Reporting & Evidence Packaging
+RAVAGER SSRF v2.0 - Phase 9: Reporting & Evidence Packaging
 ================================================================
 v5 additions:
   [v5-NEW] known_exploit_refs embedded in all evidence-tier findings
@@ -662,7 +662,7 @@ def write_sarif_report(report: ScanReport, output_path: "str | Path") -> Path:
         "runs": [{
             "tool": {
                 "driver": {
-                    "name":    "HELLHOUND-SSRF",
+                    "name":    "RAVAGER",
                     "version": "5.0",
                     "rules":   list(rules.values()),
                 }

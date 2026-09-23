@@ -1,7 +1,7 @@
 """
 Tests for the dynamic async worker pool in core/agent.py.
 
-The worker pool is the highest-risk new code in CrossForge — it replaced
+The worker pool is the highest-risk new code in RAVAGER — it replaced
 a sequential for-loop with N concurrent tasks that share a mutable list
 (active). These tests verify:
 

@@ -44,3 +44,6 @@ bin/
 .idea/
 .vscode/
 *.swp
+
+# Test cache
+.pytest_cache/

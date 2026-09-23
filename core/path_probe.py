@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - Phase 1 Extension: Predictable Path Discovery
+RAVAGER SSRF v2.0 - Phase 1 Extension: Predictable Path Discovery
 ====================================================================
 Wordlist-based probe that discovers SSRF-prone endpoints not found by the
 Spider or spec-based (OpenAPI/GraphQL) adapters.
@@ -233,7 +233,7 @@ async def probe_predictable_paths(
 
     # Shared HTTP client headers (auth + user-agent)
     client_headers: dict = {
-        "User-Agent": "CrossForge-PathProbe/1.0",
+        "User-Agent": "RAVAGER-PathProbe/1.0",
         **auth_headers,
     }
     transport_kwargs: dict = {"verify": False}

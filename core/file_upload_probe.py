@@ -1,5 +1,5 @@
 """
-CrossForge SSRF Agent — File Upload SSRF Probe
+RAVAGER SSRF Agent — File Upload SSRF Probe
 ===============================================
 Implements detection of SSRF vulnerabilities triggered through uploaded file
 content rather than URL parameters.  Covers three file-format attack classes:
@@ -242,7 +242,7 @@ async def probe_upload_endpoints(
     Parameters
     ----------
     candidates  : list of Candidate objects from Phase 0 recon
-    client      : the CrossForge HttpClient instance
+    client      : the RAVAGER HttpClient instance
     ssrf_url    : SSRF target URL embedded in the file payloads
     oob_domain  : if set, embed in payload instead of ssrf_url; hits require
                   OOB confirmation (annotated in the returned dict)

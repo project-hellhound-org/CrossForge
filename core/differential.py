@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - Phase 4: Active Probing & Differential Analysis
+RAVAGER SSRF v2.0 - Phase 4: Active Probing & Differential Analysis
 ========================================================================
 v5 fixes and enhancements:
   [P1-FIX] composite_z HARD CAPPED at 10.0 — prevents a single extreme

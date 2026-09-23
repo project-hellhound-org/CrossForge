@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - Phase 1: Multi-Dimensional Baseline Establishment
+RAVAGER SSRF v2.0 - Phase 1: Multi-Dimensional Baseline Establishment
 =========================================================================
 v5 additions:
   [v5-NEW] Infrastructure-noise detection (borrowed from Invicti's confidence-
@@ -43,7 +43,7 @@ async def establish_baseline(client, candidate: Candidate) -> BaselineProfile:
     Sends BASELINE_SAMPLES clean (unmodified original_value) requests and
     builds a per-dimension statistical profile.
 
-    [C.2 audit note] CrossForge_LLM_Fix_Prompt.md Issue C.2 flagged this as
+    [C.2 audit note] RAVAGER_LLM_Fix_Prompt.md Issue C.2 flagged this as
     collecting a "global" baseline that doesn't account for per-parameter
     reflection behaviour (a logged/echoed param vs. a silently-discarded
     one). That diagnosis doesn't match this function: `establish_baseline`

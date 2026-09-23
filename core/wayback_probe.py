@@ -1,5 +1,5 @@
 """
-CrossForge SSRF Agent — Wayback Machine Seeding (Phase 1 addition, opt-in)
+RAVAGER SSRF Agent — Wayback Machine Seeding (Phase 1 addition, opt-in)
 ================================================================================
 WHY THIS MODULE EXISTS
 ------------------------
@@ -36,7 +36,7 @@ from urllib.parse import quote
 
 import httpx
 
-logger = logging.getLogger("crossforge.wayback_probe")
+logger = logging.getLogger("ravager.wayback_probe")
 
 _CDX_URL = (
     "https://web.archive.org/cdx/search/cdx"

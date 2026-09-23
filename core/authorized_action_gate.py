@@ -1,7 +1,7 @@
 """
 core/authorized_action_gate.py
 
-Implements the AuthorizedActionGate from CrossForge_Blueprint_Scoped.md,
+Implements the AuthorizedActionGate from RAVAGER_Blueprint_Scoped.md,
 Section 1.4 — the hard stop between Phase 4 (Detect/Verify) and any action
 that touches, fingerprints, or extracts data from an internal service.
 
@@ -59,8 +59,8 @@ from core.chaining import extract_pivot_targets, PivotTarget
 
 # ---------------------------------------------------------------------------
 # Candidate snapshot — makes a FindingProposal self-sufficient across
-# process boundaries. A proposal generated during `crossforge --input ...`
-# needs to be reviewable later by `crossforge --review report.json` in a
+# process boundaries. A proposal generated during `rage --input ...`
+# needs to be reviewable later by `rage --review report.json` in a
 # SEPARATE process, where the original in-memory Candidate object no
 # longer exists. Rather than requiring the reviewer to still have access
 # to the scanning process (impossible in practice — an operator reviews
@@ -253,7 +253,7 @@ class FindingProposal:
 
     `candidate_snapshot` makes this self-sufficient across a process
     boundary — see CandidateSnapshot's docstring. A proposal loaded from
-    a JSON report file by `crossforge --review` needs nothing else to be
+    a JSON report file by `rage --review` needs nothing else to be
     actionable.
     """
     proposal_id:             str
@@ -398,7 +398,7 @@ class AuthorizedActionGate:
         `cand`: pass the live Candidate object if you have one (e.g. the
         same process that generated the proposal). If omitted, it's
         rebuilt from proposal.candidate_snapshot — this is what makes
-        cross-session review (`crossforge --review report.json`, a
+        cross-session review (`rage --review report.json`, a
         separate process) work without needing the original in-memory
         engagement state.
         """
@@ -507,3 +507,60 @@ class AuthorizedActionGate:
             approved_methods=[], evidence_collected=[p.host for p in pivots],
         ))
         return pivots
+
+    # ------------------------------------------------------------------
+    # [v2-NEW] Batch execution for 3-mode exploitation pipeline
+    # ------------------------------------------------------------------
+
+    async def execute_batch(
+        self,
+        proposals: list[FindingProposal],
+        *,
+        approved_methods: list[str],
+        operator: str,
+        internal_addrs: "list[str] | None" = None,
+    ) -> dict[str, list[EvidenceArtifact]]:
+        """
+        Execute approved evidence methods against multiple proposals in one
+        batch. Returns {proposal_id: [EvidenceArtifact, ...]}.
+
+        This is the entry point for the 3-mode exploitation pipeline:
+          - 'default' mode:       batch-executes read-only evidence methods
+          - 'exploit_chain' mode: batch-executes all + per-destructive prompts
+
+        Each proposal is executed independently; failures in one do not
+        halt others. All executions are logged to the audit trail.
+        """
+        if not operator or not operator.strip():
+            raise ValueError(
+                "execute_batch() requires a non-empty operator identity."
+            )
+        unknown = set(approved_methods) - set(EVIDENCE_METHODS)
+        if unknown:
+            raise ValueError(f"Unknown evidence method(s): {sorted(unknown)}")
+
+        results: dict[str, list[EvidenceArtifact]] = {}
+
+        for proposal in proposals:
+            try:
+                evidence = await self.execute(
+                    proposal,
+                    approved_methods=approved_methods,
+                    operator=operator,
+                    internal_addrs=internal_addrs,
+                )
+                results[proposal.proposal_id] = evidence
+            except Exception as exc:
+                # Log the failure but continue with other proposals
+                self.log.append(AuthorizedActionRecord(
+                    proposal_id=proposal.proposal_id,
+                    operator=operator,
+                    action="batch_error",
+                    approved_methods=list(approved_methods),
+                    evidence_collected=[],
+                    reason=str(exc),
+                ))
+                results[proposal.proposal_id] = []
+
+        return results
+

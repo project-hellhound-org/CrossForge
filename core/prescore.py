@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - Phase 0: Surface Mapping & Candidate Pre-Scoring
+RAVAGER SSRF v2.0 - Phase 0: Surface Mapping & Candidate Pre-Scoring
 ========================================================================
 v5 fixes:
   [P0-FIX] Word-boundary anchors on ALL HIGH_VALUE_ENDPOINT_PATTERNS
@@ -60,6 +60,11 @@ _HIGH_VALUE_PARAM_WORDS: frozenset[str] = frozenset({
     "server", "address", "addr", "notify", "ping",
     "check", "scan", "crawl", "manifest", "rss", "sitemap",
     "href", "action", "api",
+    # [v2-NEW] Stored/second-order SSRF param words
+    "template", "logo", "header", "footer", "background",
+    "integration", "hook", "subscribe", "render", "screenshot",
+    "xml", "xmldata", "soap", "payload", "body", "request",
+    "data", "slack", "discord", "teams", "connector",
 })
 
 # Keep the endpoint-level regex — endpoints are full path strings, not
@@ -122,11 +127,25 @@ HIGH_VALUE_ENDPOINT_PATTERNS = [
     r"(?:^|/)forward(?:/|$)",
     r"(?:^|/)load(?:/|$)",
     r"(?:^|/)check(?:/|$)",
+    # [v2-NEW] SOAP/XML/API endpoint patterns
+    r"(?:^|/)soap(?:/|$)",
+    r"(?:^|/)wsdl(?:/|$)",
+    r"(?:^|/)xmlrpc(?:\.php)?(?:/|$)",
+    r"(?:^|/)axis2(?:/|$)",
+    r"(?:^|/)cxf(?:/|$)",
+    r"(?:^|/)services(?:/|$)",
+    # [v2-NEW] Stored/async sink endpoint patterns
+    r"(?:^|/)subscribe(?:/|$)",
+    r"(?:^|/)notification(?:s)?(?:/|$)",
+    r"(?:^|/)template(?:s)?(?:/|$)",
+    r"(?:^|/)plugin(?:s)?(?:/|$)",
 ]
 
 # Content-Type signals
 HIGH_VALUE_CONTENT_TYPES = [
     "application/pdf", "image/", "multipart/form-data",
+    # [v2-NEW] XML content types for XXE→SSRF detection
+    "application/xml", "text/xml", "application/soap+xml",
 ]
 
 # Param-location weights (unchanged)

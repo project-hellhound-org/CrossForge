@@ -1,7 +1,7 @@
 """
 Regression tests for the differential scorer (core/differential.py).
 
-Context: CrossForge's ContextualSSRFDifferentialDetector was flagging
+Context: RAVAGER's ContextualSSRFDifferentialDetector was flagging
 virtually any endpoint that reflected its input at all — logging, "received:
 <val>" echoes, form re-population — as an SSRF anomaly, because it compared
 a real payload (e.g. "http://127.0.0.1/", ~18 chars) against a baseline

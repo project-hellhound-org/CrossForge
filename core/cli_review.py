@@ -1,7 +1,7 @@
 """
 core/cli_review.py
 
-Backs `crossforge --review <report.json>` — the practical missing piece
+Backs `rage --review <report.json>` — the practical missing piece
 identified alongside the AuthorizedActionGate: a gate that's correct but
 only callable from a Python REPL isn't usable by an operator. This module
 is the thin interactive layer; all the actual enforcement (operator
@@ -117,14 +117,14 @@ def _prompt(msg: str) -> str:
 
 async def run_review_session(report_path: Path, config_path: Path) -> None:
     """
-    The interactive loop behind `crossforge --review`. Never calls
+    The interactive loop behind `rage --review`. Never calls
     AuthorizedActionGate.execute() itself — delegates every execution to
-    CrossForgeAgent.run_authorized_evidence(), so this file adds no new
+    RavagerAgent.run_authorized_evidence(), so this file adds no new
     path into evidence_engine.py. Its only job is turning operator input
     into the (proposal_id, approved_methods, operator) arguments that
     method already requires.
     """
-    from core.agent import CrossForgeAgent  # deferred: avoid import cost on every CLI invocation
+    from core.agent import RavagerAgent  # deferred: avoid import cost on every CLI invocation
 
     report = load_report(report_path)
     pending = [p for p in report.pending_proposals if p.status == "AWAITING_REVIEW"]
@@ -143,7 +143,7 @@ async def run_review_session(report_path: Path, config_path: Path) -> None:
         _print_proposal_row(i, p)
         tprint("")
 
-    agent = CrossForgeAgent(config_path)
+    agent = RavagerAgent(config_path)
 
     while True:
         pending = [p for p in report.pending_proposals if p.status == "AWAITING_REVIEW"]

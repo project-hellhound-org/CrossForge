@@ -1,5 +1,5 @@
 """
-CrossForge SSRF Agent — SSRF Vulnerability Type Classifier
+RAVAGER SSRF Agent — SSRF Vulnerability Type Classifier
 ===========================================================
 WHAT THIS MODULE DOES
 ----------------------

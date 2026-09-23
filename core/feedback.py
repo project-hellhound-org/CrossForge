@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - Phase 10: Adaptive Feedback Loop
+RAVAGER SSRF v2.0 - Phase 10: Adaptive Feedback Loop
 =========================================================
 v5 additions:
   [v5-NEW] Known-exploits cross-reference propagation — when a confirmed

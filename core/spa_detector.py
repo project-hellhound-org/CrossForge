@@ -1,11 +1,11 @@
 """
-HELLHOUND SSRF v5.0 - SPA Catch-All Detector
+RAVAGER SSRF v2.0 - SPA Catch-All Detector
 ===============================================
 WHY THIS MODULE EXISTS
 -----------------------
 React / Vue / Angular SPAs use catch-all client-side routing that returns
 HTTP 200 for EVERY path, including /totally-random-garbage-abc123. When
-HELLHOUND's Phase 6 evidence engine runs build_port_state_map(), it uses
+RAVAGER's Phase 6 evidence engine runs build_port_state_map(), it uses
 the SSRF sink to probe http://target:PORT/ — but if the app is a SPA, the
 catch-all 200 is returned regardless of whether any backend connection was
 made. Every port appears "open_http", inflating port_state_map artifacts

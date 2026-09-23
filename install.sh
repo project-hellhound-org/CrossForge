@@ -1,5 +1,5 @@
 #!/bin/bash
-# install.sh — High-Fidelity Setup for crossforge v1.1.0 [HELLHOUND-class]
+# install.sh — High-Fidelity Setup for RAVAGER v2.0.0
 
 # Zero-dependency Python HUD for immediate animation start
 python3 - << 'EOF'
@@ -94,27 +94,27 @@ def main():
     run_task("PATCHING SYSTEM LIBS", "sudo ./.venv/bin/python3 -m playwright install-deps chromium")
     run_task("FINALIZING SYSTEM SETUP", "./.venv/bin/pip install -e .")
 
-    # Deploy global CLI wrapper — write a real script to /usr/local/bin/crossforge
+    # Deploy global CLI wrapper — write a real script to /usr/local/bin/rage
     project_root = os.path.abspath(os.getcwd())
     venv_python  = os.path.join(project_root, ".venv", "bin", "python3")
-    entry_script = os.path.join(project_root, "crossforge_run.py")
+    entry_script = os.path.join(project_root, "ravager_run.py")
     wrapper = f'#!/bin/bash\nexec "{venv_python}" "{entry_script}" "$@"\n'
     try:
         # 1) Remove old symlink/file — critical to avoid writing into directory
-        subprocess.run(["sudo", "rm", "-f", "/usr/local/bin/crossforge"],
+        subprocess.run(["sudo", "rm", "-f", "/usr/local/bin/rage"],
                        capture_output=True, check=True)
         # 2) Write fresh wrapper script
-        subprocess.run(["sudo", "tee", "/usr/local/bin/crossforge"],
+        subprocess.run(["sudo", "tee", "/usr/local/bin/rage"],
                        input=wrapper.encode(), capture_output=True, check=True)
         # 3) Make executable
-        subprocess.run(["sudo", "chmod", "+x", "/usr/local/bin/crossforge"],
+        subprocess.run(["sudo", "chmod", "+x", "/usr/local/bin/rage"],
                        capture_output=True, check=True)
-        print("\r\033[K\033[1;32m[+]\033[0m Global command deployed: /usr/local/bin/crossforge")
+        print("\r\033[K\033[1;32m[+]\033[0m Global command deployed: /usr/local/bin/rage")
     except Exception as e:
         print(f"\r\033[K\033[31m[-]\033[0m Failed to deploy global link: {e}")
 
-    print("\n\033[1;32m[+] CROSSFORGE DEPLOYED SUCCESSFULLY\033[0m")
-    print("\033[2mVERSION: 1.1.0-STABLE\033[0m\n")
+    print("\n\033[1;32m[+] RAVAGER DEPLOYED SUCCESSFULLY\033[0m")
+    print("\033[2mVERSION: 2.0.0-STABLE\033[0m\n")
 
 if __name__ == "__main__":
     main()

@@ -1,5 +1,5 @@
 """
-CrossForge SSRF Agent — Subdomain Enumeration via Certificate Transparency
+RAVAGER SSRF Agent — Subdomain Enumeration via Certificate Transparency
 ================================================================================
 WHY THIS MODULE EXISTS
 ------------------------

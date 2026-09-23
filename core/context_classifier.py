@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - Phase 2: Contextual Classification
+RAVAGER SSRF v2.0 - Phase 2: Contextual Classification
 ===========================================================
 v5 additions:
   [v5-NEW] CRLF_INJECTION context class — detected when parameter name/value
@@ -55,13 +55,9 @@ from core.models import Candidate, ContextClass, ParamLocation, PreScoreTier, Vu
 # needing to re-classify from scratch.
 _VULN_TYPE_TO_CONTEXT: dict[str, ContextClass] = {
     "url_param":          ContextClass.FETCH_URL,
-    "callback_webhook":   ContextClass.FETCH_URL,
-    "feed_rss":           ContextClass.FETCH_URL,
     "microservice_proxy": ContextClass.FETCH_URL,
     "url_preview":        ContextClass.FETCH_URL,
     "image_processing":   ContextClass.FETCH_URL,
-    "pdf_service":        ContextClass.FETCH_URL,
-    "file_import":        ContextClass.FETCH_URL,
     "video_service":      ContextClass.FETCH_URL,
     "backup_restore":     ContextClass.FETCH_URL,
     "crawl_monitor":      ContextClass.FETCH_URL,
@@ -72,10 +68,16 @@ _VULN_TYPE_TO_CONTEXT: dict[str, ContextClass] = {
     "cloud_storage":      ContextClass.FETCH_URL,
     "auth_service":       ContextClass.FETCH_URL,
     "metadata_extractor": ContextClass.FETCH_URL,
-    "email_template":     ContextClass.FETCH_URL,
-    "package_import":     ContextClass.FETCH_URL,
-    "xml_external":       ContextClass.FETCH_URL,
     "grpc_endpoint":      ContextClass.FETCH_URL,
+    # [v2-NEW] Async sinks → ASYNC_SINK for stored/second-order SSRF payloads
+    "callback_webhook":   ContextClass.ASYNC_SINK,
+    "feed_rss":           ContextClass.ASYNC_SINK,
+    "email_template":     ContextClass.ASYNC_SINK,
+    "pdf_service":        ContextClass.ASYNC_SINK,
+    "file_import":        ContextClass.ASYNC_SINK,
+    "package_import":     ContextClass.ASYNC_SINK,
+    # [v2-NEW] XML external entity → XML_BODY for XXE→SSRF payloads
+    "xml_external":       ContextClass.XML_BODY,
     # Redirect keeps its own ContextClass so it gets redirect-specific payloads
     "redirect_param":     ContextClass.REDIRECT,
     # Header injection keeps HOST_HEADER
@@ -230,7 +232,7 @@ def _select_subset(context: ContextClass, tier: PreScoreTier) -> list[dict]:
     # in a per-candidate token; with shared references, the first candidate
     # in a context class consumed the "{token}" placeholder and every
     # subsequent candidate of that class silently found it already gone,
-    # skipping OOB dispatch entirely. See CrossForge_LLM_Fix_Prompt.md, A.1.
+    # skipping OOB dispatch entirely. See RAVAGER_LLM_Fix_Prompt.md, A.1.
     full = [
         dict(e) for e in
         _CONTEXTUAL_PAYLOADS.get(context.value, _CONTEXTUAL_PAYLOADS["unknown"])

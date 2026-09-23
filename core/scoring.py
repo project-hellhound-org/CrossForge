@@ -1,5 +1,5 @@
 """
-HELLHOUND SSRF v5.0 - Phase 8: Confidence Scoring & Severity Tiering
+RAVAGER SSRF v2.0 - Phase 8: Confidence Scoring & Severity Tiering
 =======================================================================
 v5 additions:
   [v5-NEW] Known-exploits escalation — when Phase 6 port_state_map reveals
@@ -91,13 +91,29 @@ def determine_tier(
     else:
         return None
 
-    # ---- [v5-NEW] Known-exploits escalation ----------------------------
-    # If evidence contains a port_state_map with open ports that cross-
-    # reference against a known-exploitable service, push to CRITICAL_PLUS.
+    # ---- [v2-FIX] Known-exploits escalation with confirmation gating ----
+    # Port-inferred services (just saw an open port matching a known service)
+    # can only push to FIRM — the port number alone isn't proof the service
+    # is actually running (e.g. a custom app on port 6379 ≠ Redis).
+    # Banner-confirmed services (protocol handshake validated via BannerProbe)
+    # can push to CRITICAL_PLUS — we have definitive proof.
     if known_exploits and raw_tier in (ConfidenceTier.CERTAIN, ConfidenceTier.FIRM):
-        critical_exploits = [e for e in known_exploits if e.escalate_to == "critical"]
-        if critical_exploits:
+        banner_confirmed = [
+            e for e in known_exploits
+            if e.escalate_to == "critical"
+            and getattr(e, "confirmation_method", "port_inferred") == "banner_confirmed"
+        ]
+        port_only_critical = [
+            e for e in known_exploits
+            if e.escalate_to == "critical"
+            and getattr(e, "confirmation_method", "port_inferred") == "port_inferred"
+        ]
+        if banner_confirmed:
+            # Definitive: protocol banner proves the service identity
             raw_tier = ConfidenceTier.CRITICAL_PLUS
+        elif port_only_critical:
+            # Port-inferred only: cap at FIRM (still significant, but not proven)
+            raw_tier = max(raw_tier, ConfidenceTier.FIRM, key=lambda t: _TIER_ORDER.index(t))
 
     # ---- [v5-NEW] K8s / Docker daemon special escalation ---------------
     for art in evidence:

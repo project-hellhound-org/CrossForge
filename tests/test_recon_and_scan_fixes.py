@@ -1,6 +1,6 @@
 """
 Regression tests for Phase 1-2 (Recon & Scanning) surgical fixes documented
-in CrossForge_LLM_Fix_Prompt.md, Parts A and B.
+in RAVAGER_LLM_Fix_Prompt.md, Parts A and B.
 
 Each test pins the specific failure mode described in the audit at the unit
 level (synthetic inputs, no live server / no browser required) so the fix

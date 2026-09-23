@@ -1,14 +1,25 @@
 """
-HELLHOUND SSRF v5.0 - Phase 7: Second-Order & Chained SSRF Detection
-=======================================================================
+RAVAGER SSRF v2.0.0 - Phase 7: Second-Order & Chained SSRF Detection
+==========================================================================
+
+This module has two distinct responsibilities:
+
+  1. detect_cross_endpoint_ssrf() — DETECTION
+     Identifies cross-endpoint SSRF chains from existing findings. Checks
+     if multiple candidates on the SAME host but DIFFERENT endpoints
+     produced findings, which indicates chain amplification potential.
+     Pure classification — no requests sent.
+
+  2. extract_pivot_targets() — EXTRACTION
+     Derives new pivot hosts from evidence (port maps, metadata, OOB
+     callbacks) for the agent to scan in subsequent hops. Pure function
+     over already-collected evidence. The actual re-queuing is done by
+     agent.py's pivot loop, gated by AuthorizedActionGate.approve_pivots().
+
 v5 additions:
-  [v5-NEW] Kubernetes API server pivot — when port 443/6443/8443 is
-           open on an RFC1918 host and a k8s API marker is found in the
-           evidence body, generates a dedicated K8s pivot target.
-  [v5-NEW] ECS task metadata pivot — chains into ECS task metadata
-           evidence to extract Cluster ARN and task network info.
-  [v5-NEW] Known-exploits cross-reference on open ports via pivot —
-           annotates PivotTarget.notes with matched CVEs and exploitability.
+  [v5-NEW] Kubernetes API server pivot
+  [v5-NEW] ECS task metadata pivot
+  [v5-NEW] Known-exploits cross-reference on open ports
 """
 
 from __future__ import annotations
@@ -245,3 +256,108 @@ def _annotate_known_exploits(open_ports: list[int]) -> str:
         return "Known exploitable services: " + "; ".join(parts)
     except Exception:
         return ""
+
+
+# ---------------------------------------------------------------------------
+# [v2-NEW] Cross-endpoint SSRF chain detection
+# ---------------------------------------------------------------------------
+
+@dataclass
+class CrossEndpointChain:
+    """Record of a cross-endpoint SSRF chain detection."""
+    source_endpoint:  str
+    target_endpoint:  str
+    shared_host:      str
+    chain_type:       str   # "multi_param_same_host" | "multi_endpoint_same_host"
+    source_param:     str = ""
+    target_param:     str = ""
+    notes:            str = ""
+
+
+def detect_cross_endpoint_ssrf(
+    findings: list,
+) -> list[CrossEndpointChain]:
+    """
+    DETECTION — identifies cross-endpoint SSRF chains from existing findings.
+
+    Checks if multiple findings on the SAME host but DIFFERENT endpoints
+    produced confirmed SSRF signals. This indicates chain amplification:
+    an attacker who finds SSRF on endpoint A can use it to reach internal
+    services, and if endpoint B also has SSRF, the attack surface multiplies.
+
+    This is pure classification — no requests are sent. It operates on
+    the list of Finding objects already produced by the pipeline.
+
+    Returns:
+        List of CrossEndpointChain records, one per detected chain pair.
+    """
+    from urllib.parse import urlparse
+    from collections import defaultdict
+
+    # Group findings by (host, path)
+    host_to_endpoints: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))
+
+    for finding in findings:
+        url = getattr(finding, "target_url", "") or finding.details.get("target_url", "")
+        param = getattr(finding, "affected_parameter", "") or finding.details.get("parameter", "")
+        if not url:
+            continue
+        parsed = urlparse(url)
+        host = parsed.netloc or parsed.hostname or ""
+        path = parsed.path or "/"
+        host_to_endpoints[host][path].append({
+            "finding": finding,
+            "param": param,
+            "url": url,
+        })
+
+    chains: list[CrossEndpointChain] = []
+
+    for host, endpoints in host_to_endpoints.items():
+        if len(endpoints) < 2:
+            continue
+
+        # Cross-endpoint chain: different paths on the same host
+        paths = sorted(endpoints.keys())
+        for i in range(len(paths)):
+            for j in range(i + 1, len(paths)):
+                src_path, tgt_path = paths[i], paths[j]
+                src_findings = endpoints[src_path]
+                tgt_findings = endpoints[tgt_path]
+
+                chains.append(CrossEndpointChain(
+                    source_endpoint=src_path,
+                    target_endpoint=tgt_path,
+                    shared_host=host,
+                    chain_type="multi_endpoint_same_host",
+                    source_param=src_findings[0]["param"] if src_findings else "",
+                    target_param=tgt_findings[0]["param"] if tgt_findings else "",
+                    notes=(
+                        f"Cross-endpoint SSRF on {host}: "
+                        f"{src_path} ({len(src_findings)} finding(s)) and "
+                        f"{tgt_path} ({len(tgt_findings)} finding(s)) both "
+                        f"confirmed — chain amplification possible."
+                    ),
+                ))
+
+        # Multi-param chain: same path, different params
+        for path, path_findings in endpoints.items():
+            params = {f["param"] for f in path_findings if f["param"]}
+            if len(params) >= 2:
+                param_list = sorted(params)
+                chains.append(CrossEndpointChain(
+                    source_endpoint=path,
+                    target_endpoint=path,
+                    shared_host=host,
+                    chain_type="multi_param_same_host",
+                    source_param=param_list[0],
+                    target_param=param_list[1],
+                    notes=(
+                        f"Multi-parameter SSRF on {host}{path}: "
+                        f"parameters {param_list} all confirmed SSRF — "
+                        f"increases exploitation surface and bypass options."
+                    ),
+                ))
+
+    return chains
+
