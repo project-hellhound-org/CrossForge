@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="images/Banner.png" alt="RAVAGER Banner" width="100%"/>
+</p>
+
+<p align="center">
   <h1 align="center">RAVAGER</h1>
   <p align="center"><b>Request Analysis & Validation Agent for Gateway Exploitation Research</b></p>
   <p align="center">Autonomous SSRF Detection · Exploitation · Verification</p>
@@ -31,7 +35,7 @@ RAVAGER is an enterprise-grade autonomous SSRF (Server-Side Request Forgery) age
 
 ```bash
 # Install
-git clone https://github.com/project-hellhound-org/CrossForge.git ravager
+git clone https://github.com/project-hellhound-org/RAVAGER.git ravager
 cd ravager
 chmod +x install.sh && ./install.sh
 
